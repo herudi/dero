@@ -75,7 +75,7 @@ Fast micro framework for Deno.
 
 ## Usage
 ```ts
-import { dero } from "https://deno.land/x/dero@0.0.1/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.0.2/mod.ts";
 
 // METHODS => GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, ANY.
 dero.get("/hello", (req) => {
@@ -87,7 +87,7 @@ await dero.listen(3000);
 
 ## Middleware
 ```ts
-import { dero } from "https://deno.land/x/dero@0.0.1/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.0.2/mod.ts";
 
 dero.use((req, res, next) => {
     req.foo = "foo";
@@ -110,7 +110,7 @@ await dero.listen(3000);
 ```
 ## Sub Router
 ```ts
-import { dero, Router } from "https://deno.land/x/dero@0.0.1/mod.ts";
+import { dero, Router } from "https://deno.land/x/dero@0.0.2/mod.ts";
 
 const router = new Router();
 router.get("/hello", (req) => {
