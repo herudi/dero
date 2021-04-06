@@ -1,4 +1,4 @@
-import { ServerRequest, serve, HTTPOptions } from "https://deno.land/std/http/server.ts";
+import { ServerRequest, serve, HTTPOptions, HTTPSOptions, serveTLS, Server } from "https://deno.land/std/http/server.ts";
 
 export type NextFunction = (err?: any) => void;
 export interface Request extends ServerRequest {
@@ -225,10 +225,12 @@ export class Router {
 export class Dero extends Router {
     public parsequery: (query: string) => any;
     public parseurl: (req: Request) => any;
+    public server: Server | undefined;
     constructor() {
         super();
         this.parseurl = parseurl;
         this.parsequery = parsequery;
+        this.server = undefined;
     }
     #onError = (err: any, req: Request, res: Response, next?: NextFunction) => {
         let code = err.code || err.status || err.statusCode || 500;
@@ -273,7 +275,6 @@ export class Dero extends Router {
     use(prefix: string, middleware: THandler, router: Router): this;
     use(prefix: string, middleware: THandler): this;
     use(prefix: string, ...middlewares: Array<THandler | THandler[]>): this;
-    use(...args: any): this;
     use(...args: any) {
         let arg = args[0],
             larg = args[args.length - 1],
@@ -341,12 +342,21 @@ export class Dero extends Router {
         next();
     }
 
-    async listen(port: number, hostname?: string) {
-        let opts: HTTPOptions = { port };
-        if (hostname !== void 0) opts.hostname = hostname;
-        const server = serve(opts);
-        for await (const req of server) {
-            this.lookup(req as Request);
+    async listen(opts?: number | HTTPSOptions | HTTPOptions, callback?: (err?: Error) => void) {
+        if (this.server === void 0 && opts === void 0) {
+            if (callback) callback(new Error("Options or port is required"));
+            return;
+        }
+        let isTls = false;
+        if (typeof opts === 'number') opts = { port: opts }; 
+        else if (typeof opts === 'object') isTls = (opts as HTTPSOptions).certFile !== void 0;
+        const server = this.server || (isTls ? serveTLS(opts as HTTPSOptions) : serve(opts as HTTPOptions));
+        try {
+            if (callback) callback();
+            for await (const req of server) this.lookup(req as Request);
+        } catch (error) {
+            if (callback) callback(error);
+            if (server.close) server.close();
         }
     }
 }

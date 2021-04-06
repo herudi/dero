@@ -13,7 +13,7 @@ Fast micro framework for Deno.
   The benchmarks try to 1000 route and call http://localhost:3000/hello999.
   Example :
   ```ts
-    import { dero } from "./mod.ts";
+    import { dero } from "https://deno.land/x/dero@0.0.3/mod.ts";
 
     for (let i = 0; i < 1000; i++) {
         dero.get('/hello' + i, (req) => {
@@ -75,7 +75,7 @@ Fast micro framework for Deno.
 
 ## Usage
 ```ts
-import { dero } from "https://deno.land/x/dero@0.0.2/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.0.3/mod.ts";
 
 // METHODS => GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, ANY.
 dero.get("/hello", (req) => {
@@ -84,10 +84,14 @@ dero.get("/hello", (req) => {
 
 await dero.listen(3000);
 ```
+## Run Deno
+```bash
+deno run --allow-net yourfile.ts
+```
 
 ## Middleware
 ```ts
-import { dero } from "https://deno.land/x/dero@0.0.2/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.0.3/mod.ts";
 
 dero.use((req, res, next) => {
     req.foo = "foo";
@@ -110,7 +114,7 @@ await dero.listen(3000);
 ```
 ## Sub Router
 ```ts
-import { dero, Router } from "https://deno.land/x/dero@0.0.2/mod.ts";
+import { dero, Router } from "https://deno.land/x/dero@0.0.3/mod.ts";
 
 const router = new Router();
 router.get("/hello", (req) => {
@@ -122,10 +126,10 @@ dero.use("/api/v1", router);
 await dero.listen(3000);
 ```
 
-## req.pond(data: string | object, options?: object)
-### data
+## req.pond(body: Uint8Array | Deno.Reader | string, opts?: PondOptions)
+### body
 req.pond send data with type string or object json.
-### options
+### opts
 is an optional object like status and headers.
 
 ```ts
@@ -166,8 +170,37 @@ req._body
 Response is an object transfer data from middleware like res.locals or other.
 ## Next
 Next is a function to next step handler.
-## dero.listen(port: number, hostname?: string);
-listen from server
+## listen(opts?: number | HTTPSOptions | HTTPOptions, callback?: (err?: Error) => void);
+```ts
+    await dero.listen(3000);
+    // or
+    const cb = (err) => {
+        if (err) console.log(err);
+        console.log("Running on server");
+    }
+    await dero.listen(3000, cb);
+    // or
+    await dero.listen({ port: 3000, hostname: 'localhost' }, cb);
+    // or https
+    await dero.listen({ 
+        hostname: "localhost",
+        port: 443,
+        certFile: "./path/to/localhost.crt",
+        keyFile: "./path/to/localhost.key",
+    }, cb);
+```
+## onError & onNotFound
+Simple error handling.
+```ts
+    ...
+    dero.onError((err, req, res, next) => {
+        req.pond({ message: err.message }, { status: err.code });
+    });
+    dero.onNotFound((req, res, next) => {
+        req.pond({ message: `Url ${req.url} not found` }, { status: 404 });
+    });
+    ...
+```
 ## The role of dero.use
 ```ts
 // prefix string and array router
