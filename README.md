@@ -13,7 +13,7 @@ Fast micro framework for Deno.
   The benchmarks try to 1000 route and call http://localhost:3000/hello999.
   Example :
   ```ts
-    import { dero } from "https://deno.land/x/dero@0.0.3/mod.ts";
+    import { dero } from "https://deno.land/x/dero@0.0.4/mod.ts";
 
     for (let i = 0; i < 1000; i++) {
         dero.get('/hello' + i, (req) => {
@@ -75,9 +75,9 @@ Fast micro framework for Deno.
 
 ## Usage
 ```ts
-import { dero } from "https://deno.land/x/dero@0.0.3/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.0.4/mod.ts";
 
-// METHODS => GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, ANY.
+// METHODS => GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, ANY, TRACE, CONNECT.
 dero.get("/hello", (req) => {
     req.pond(`Hello Dero`);
 });
@@ -88,10 +88,22 @@ await dero.listen(3000);
 ```bash
 deno run --allow-net yourfile.ts
 ```
+## Config (if you want)
+```ts
+...
+// this code is example
+dero.parseurl = parseurl.parse;
+dero.parsequery = qs.parse;
+dero.server = serve({ port: 9999 });
+dero.get("/hello", (req) => {
+    req.pond(`Hello Dero`);
+});
+...
+```
 
 ## Middleware
 ```ts
-import { dero } from "https://deno.land/x/dero@0.0.3/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.0.4/mod.ts";
 
 dero.use((req, res, next) => {
     req.foo = "foo";
@@ -114,7 +126,7 @@ await dero.listen(3000);
 ```
 ## Sub Router
 ```ts
-import { dero, Router } from "https://deno.land/x/dero@0.0.3/mod.ts";
+import { dero, Router } from "https://deno.land/x/dero@0.0.4/mod.ts";
 
 const router = new Router();
 router.get("/hello", (req) => {
@@ -126,11 +138,11 @@ dero.use("/api/v1", router);
 await dero.listen(3000);
 ```
 
-## req.pond(body: Uint8Array | Deno.Reader | string, opts?: PondOptions)
+## req.pond(body?, opts?)
 ### body
-req.pond send data with type string or object json.
+req.pond send data with type string or object json (optional).
 ### opts
-is an optional object like status and headers.
+is an optional object like status and headers (optional).
 
 ```ts
 ...
@@ -145,8 +157,18 @@ dero.get("/json", (req) => {
 dero.get("/sendFile", async (req) => {
     const headers = new Headers();
     headers.set("Content-Type", "text/css; charset=utf-8");
-    const file = await Deno.readFile(`${Deno.cwd()}/public/style.css`);
-    req.pond(file, { headers });
+    req.pond(
+        await Deno.readFile(`${Deno.cwd()}/public/style.css`), 
+        { headers }
+    );
+})
+dero.get("/download", async (req) => {
+    const headers = new Headers();
+    headers.set("Content-disposition", "attachment; filename=style.css");
+    req.pond(
+        await Deno.readFile(`${Deno.cwd()}/public/style.css`), 
+        { headers }
+    );
 })
 ...
 ```
@@ -157,13 +179,17 @@ Request by default from ServerRequest Deno.
 ```ts
 // query => /path?name=john
 req.query
+
 // params => /path/:name/:date
+// params => /path/:name/:date?
+// params => /path/:image.(png|jpg)
+// params => /path/*
 req.params
+
 // other
 req.originalUrl
 req.search
 req._parsedUrl
-req._body
 // and more
 ```
 ## Res

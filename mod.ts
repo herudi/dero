@@ -1,13 +1,14 @@
 import { ServerRequest, serve, HTTPOptions, HTTPSOptions, serveTLS, Server } from "https://deno.land/std/http/server.ts";
 
-export type NextFunction = (err?: any) => void;
+export type NextFunction = (err?: any) => Promise<void> | void;
 export interface Request extends ServerRequest {
     originalUrl?: string;
-    params?: any;
+    params?: { [k: string]: string };
+    _parsedUrl?: { [k: string]: any };
     path?: string;
-    query?: any;
+    query?: { [k: string]: string };
     search?: string;
-    pond(body: any, opts?: PondOptions): Promise<void>;
+    pond(body?: Uint8Array | Deno.Reader | string | { [k: string]: any } | undefined, opts?: PondOptions): Promise<void>;
     [key: string]: any;
 };
 export interface Response {
@@ -19,7 +20,9 @@ type PondOptions = {
     headers?: Headers;
     [key: string]: any;
 };
-type THandler = (req: Request, res: Response, next: NextFunction) => void;
+type THandler<Req, Res> = (req: Req, res: Res, next: NextFunction) => Promise<void> | void;
+type THandlers<Req, Res> = Array<THandler<Req, Res> | THandler<Req, Res>[]>;
+
 const JSON_TYPE_CHARSET = "application/json; charset=utf-8";
 
 function findFns(arr: any[]): any[] {
@@ -30,7 +33,6 @@ function findFns(arr: any[]): any[] {
     }
     return ret;
 }
-
 function modPath(prefix: string) {
     return function (req: Request, res: Response, next: NextFunction) {
         req.url = (req.url as string).substring(prefix.length) || '/';
@@ -38,7 +40,6 @@ function modPath(prefix: string) {
         next();
     }
 }
-
 function toPathx(path: string | RegExp, isAny: boolean) {
     if (path instanceof RegExp) return { params: null, pathx: path };
     let trgx = /\?|\*|\./;
@@ -76,22 +77,11 @@ function toPathx(path: string | RegExp, isAny: boolean) {
     }
     return { params, pathx };
 }
-
 function findBase(pathname: string) {
     let iof = pathname.indexOf('/', 1);
     if (iof !== -1) return pathname.substring(0, iof);
     return pathname;
 }
-
-function addMidd(midds: any[], notFound: (req: Request, res: Response, next?: NextFunction) => void, fns: any[], url: string = '/', midAsset?: any) {
-    if (midAsset !== void 0) {
-        let pfx = findBase(url);
-        if (midAsset[pfx]) fns = midAsset[pfx].concat(fns);
-    }
-    if (midds.length) fns = midds.concat(fns);
-    return (fns = fns.concat([notFound]));
-}
-
 function parseurl(req: Request) {
     let str: any = req.url, url = req._parsedUrl;
     if (url && url._raw === str) return url;
@@ -112,36 +102,66 @@ function parseurl(req: Request) {
     url.search = search;
     return (req._parsedUrl = url);
 }
-
 function parsequery(query: string) {
     return query ? Object.fromEntries(new URLSearchParams(query)) : {};
 }
 
-export class Router {
-    public route: { [key: string]: any };
-    public c_routes: any[];
-    midds: any[];
-    pmidds: any;
+export class Router<
+    Req extends Request = Request,
+    Res extends Response = Response
+    > {
+    route: Record<string, any> = {};
+    c_routes: Record<string, any>[] = [];
+    midds: THandler<Req, Res>[] = [];
+    pmidds: Record<string, any> = {};
+    get: (path: string, ...handlers: THandlers<Req, Res>) => this;
+    post: (path: string, ...handlers: THandlers<Req, Res>) => this;
+    put: (path: string, ...handlers: THandlers<Req, Res>) => this;
+    patch: (path: string, ...handlers: THandlers<Req, Res>) => this;
+    delete: (path: string, ...handlers: THandlers<Req, Res>) => this;
+    any: (path: string, ...handlers: THandlers<Req, Res>) => this;
+    head: (path: string, ...handlers: THandlers<Req, Res>) => this;
+    options: (path: string, ...handlers: THandlers<Req, Res>) => this;
+    trace: (path: string, ...handlers: THandlers<Req, Res>) => this;
+    connect: (path: string, ...handlers: THandlers<Req, Res>) => this;
     constructor() {
-        this.route = {};
-        this.c_routes = [];
-        this.midds = [];
-        this.pmidds = {};
+        this.get = this.on.bind(this, "GET");
+        this.post = this.on.bind(this, "POST");
+        this.put = this.on.bind(this, "PUT");
+        this.patch = this.on.bind(this, "PATCH");
+        this.delete = this.on.bind(this, "DELETE");
+        this.any = this.on.bind(this, "ANY");
+        this.head = this.on.bind(this, "HEAD");
+        this.options = this.on.bind(this, "OPTIONS");
+        this.trace = this.on.bind(this, 'TRACE');
+        this.connect = this.on.bind(this, 'CONNECT');
     }
-
-    on(method: string, path: string, ...handlers: Array<THandler | THandler[]>) {
+    #addMidd = (
+        midds: THandler<Req, Res>[],
+        notFound: THandler<Req, Res>,
+        fns: THandler<Req, Res>[],
+        url: string = '/',
+        midAsset?: { [k: string]: any }
+    ) => {
+        if (midAsset !== void 0) {
+            let pfx = findBase(url);
+            if (midAsset[pfx]) fns = midAsset[pfx].concat(fns);
+        }
+        if (midds.length) fns = midds.concat(fns);
+        return (fns = fns.concat([notFound]));
+    }
+    on(method: string, path: string, ...handlers: THandlers<Req, Res>) {
         this.c_routes.push({ method, path, handlers });
         return this;
     }
-
-    findRoute(method: string, url: string, notFound: (req: Request, res: Response, next?: NextFunction) => void) {
+    findRoute(method: string, url: string, notFound: THandler<Req, Res>) {
         let params: { [key: string]: any } = {},
             handlers: any[] = [];
         if (this.route[method + url]) {
             let obj = this.route[method + url];
             if (obj.m) handlers = obj.handlers;
             else {
-                handlers = addMidd(this.midds, notFound, obj.handlers);
+                handlers = this.#addMidd(this.midds, notFound, obj.handlers);
                 this.route[method + url] = { m: true, handlers };
             }
         } else {
@@ -156,7 +176,7 @@ export class Router {
                 params[obj.params] = url.substring(url.lastIndexOf('/') + 1);
                 if (obj.m) handlers = obj.handlers;
                 else {
-                    handlers = addMidd(this.midds, notFound, obj.handlers);
+                    handlers = this.#addMidd(this.midds, notFound, obj.handlers);
                     this.route[method + key + '/:p'] = { m: true, params: obj.params, handlers };
                 }
             } else {
@@ -175,7 +195,7 @@ export class Router {
                             nf = false;
                             if (obj.m) handlers = obj.handlers;
                             else {
-                                handlers = addMidd(this.midds, notFound, obj.handlers);
+                                handlers = this.#addMidd(this.midds, notFound, obj.handlers);
                                 if (this.route[method] && this.route[method][i]) {
                                     this.route[method][i] = { m: true, params: obj.params, handlers, pathx: obj.pathx };
                                 }
@@ -190,41 +210,19 @@ export class Router {
                         i++;
                     }
                 }
-                if (nf) handlers = addMidd(this.midds, notFound, [], url, this.pmidds);
+                if (nf) handlers = this.#addMidd(this.midds, notFound, [], url, this.pmidds);
             }
         }
         return { params, handlers };
     }
-
-    any(path: string, ...handlers: Array<THandler | THandler[]>): this {
-        return this.on('ANY', path, ...handlers);
-    }
-    get(path: string, ...handlers: Array<THandler | THandler[]>): this {
-        return this.on('GET', path, ...handlers);
-    }
-    post(path: string, ...handlers: Array<THandler | THandler[]>): this {
-        return this.on('POST', path, ...handlers);
-    }
-    put(path: string, ...handlers: Array<THandler | THandler[]>): this {
-        return this.on('PUT', path, ...handlers);
-    }
-    delete(path: string, ...handlers: Array<THandler | THandler[]>): this {
-        return this.on('DELETE', path, ...handlers);
-    }
-    patch(path: string, ...handlers: Array<THandler | THandler[]>): this {
-        return this.on('PATCH', path, ...handlers);
-    }
-    head(path: string, ...handlers: Array<THandler | THandler[]>): this {
-        return this.on('HEAD', path, ...handlers);
-    }
-    options(path: string, ...handlers: Array<THandler | THandler[]>): this {
-        return this.on('OPTIONS', path, ...handlers);
-    }
 }
 
-export class Dero extends Router {
+export class Dero<
+    Req extends Request = Request,
+    Res extends Response = Response
+    > extends Router<Req, Res> {
     public parsequery: (query: string) => any;
-    public parseurl: (req: Request) => any;
+    public parseurl: (req: Req) => any;
     public server: Server | undefined;
     constructor() {
         super();
@@ -232,7 +230,7 @@ export class Dero extends Router {
         this.parsequery = parsequery;
         this.server = undefined;
     }
-    #onError = (err: any, req: Request, res: Response, next?: NextFunction) => {
+    #onError = (err: any, req: Req, res: Res, next: NextFunction) => {
         let code = err.code || err.status || err.statusCode || 500;
         if (typeof code !== "number") code = 500;
         req.respond({
@@ -240,7 +238,7 @@ export class Dero extends Router {
             body: err.stack || 'Something went wrong'
         })
     }
-    #onNotFound = (req: Request, res: Response, next?: NextFunction) => {
+    #onNotFound = (req: Req, res: Res, next: NextFunction) => {
         req.respond({
             status: 404,
             body: `Route ${req.method}${req.url} not found`
@@ -255,26 +253,24 @@ export class Dero extends Router {
             this.on(el.method, prefix + el.path, ...el.handlers);
         }
     }
-
-    onNotfound(notFoundFunction: (req: Request, res: Response, next?: NextFunction) => void) {
+    onNotfound(notFoundFunction: THandler<Req, Res>) {
         this.#onNotFound = notFoundFunction;
     }
-
-    onError(errorFunction: (err: any, req: Request, res: Response, next?: NextFunction | undefined) => void) {
+    onError(errorFunction: (err: any, req: Req, res: Res, next: NextFunction) => void) {
         this.#onError = errorFunction;
     }
-
     use(prefix: string, routers: Router[]): this;
     use(prefix: string, router: Router): this;
     use(router: Router): this;
     use(router: Router[]): this;
-    use(middleware: THandler, routers: Router[]): this;
-    use(middleware: THandler, router: Router): this;
-    use(...middlewares: Array<THandler | THandler[]>): this;
-    use(prefix: string, middleware: THandler, routers: Router[]): this;
-    use(prefix: string, middleware: THandler, router: Router): this;
-    use(prefix: string, middleware: THandler): this;
-    use(prefix: string, ...middlewares: Array<THandler | THandler[]>): this;
+    use(middleware: THandler<Req, Res>, routers: Router[]): this;
+    use(middleware: THandler<Req, Res>, router: Router): this;
+    use(...middlewares: THandlers<Req, Res>): this;
+    use(prefix: string, middleware: THandler<Req, Res>, routers: Router[]): this;
+    use(prefix: string, middleware: THandler<Req, Res>, router: Router): this;
+    use(prefix: string, middleware: THandler<Req, Res>): this;
+    use(prefix: string, ...middlewares: THandlers<Req, Res>): this;
+    use(...args: any): this;
     use(...args: any) {
         let arg = args[0],
             larg = args[args.length - 1],
@@ -296,8 +292,7 @@ export class Dero extends Router {
         else this.midds = this.midds.concat(findFns(args));
         return this;
     }
-
-    on(method: string, path: string, ...handlers: Array<THandler | THandler[]>): this {
+    on(method: string, path: string, ...handlers: THandlers<Req, Res>): this {
         let fns = findFns(handlers);
         let obj = toPathx(path, method === 'ANY');
         if (obj !== void 0) {
@@ -310,12 +305,11 @@ export class Dero extends Router {
         } else this.route[method + path] = { handlers: fns };
         return this;
     }
-
-    lookup(req: Request, res: Response = {}) {
+    lookup(req: Req, res = {} as Res) {
         let url = this.parseurl(req),
             obj = this.findRoute(req.method, url.pathname, this.#onNotFound),
             i = 0,
-            next: (err?: any) => void = (err?: any) => {
+            next: NextFunction = (err?: any) => {
                 if (err === void 0) {
                     try {
                         obj.handlers[i++](req, res, next);
@@ -330,7 +324,7 @@ export class Dero extends Router {
         req.path = url.pathname;
         req.query = this.parsequery(url.search);
         req.search = url.search;
-        req.pond = (body: Uint8Array | Deno.Reader | string, opts: PondOptions = {}) => {
+        req.pond = (body?: Uint8Array | Deno.Reader | string | { [k: string]: any } | undefined, opts: PondOptions = {}) => {
             if (typeof body === 'object') {
                 if (body instanceof Uint8Array) return req.respond({ body, ...opts });
                 body = JSON.stringify(body);
@@ -341,19 +335,18 @@ export class Dero extends Router {
         }
         next();
     }
-
-    async listen(opts?: number | HTTPSOptions | HTTPOptions, callback?: (err?: Error) => void) {
+    async listen(opts?: number | HTTPSOptions | HTTPOptions | undefined, callback?: (err?: Error) => void) {
         if (this.server === void 0 && opts === void 0) {
             if (callback) callback(new Error("Options or port is required"));
             return;
         }
         let isTls = false;
-        if (typeof opts === 'number') opts = { port: opts }; 
+        if (typeof opts === 'number') opts = { port: opts };
         else if (typeof opts === 'object') isTls = (opts as HTTPSOptions).certFile !== void 0;
         const server = this.server || (isTls ? serveTLS(opts as HTTPSOptions) : serve(opts as HTTPOptions));
         try {
             if (callback) callback();
-            for await (const req of server) this.lookup(req as Request);
+            for await (const req of server) this.lookup(req as Req);
         } catch (error) {
             if (callback) callback(error);
             if (server.close) server.close();
