@@ -1,4 +1,11 @@
-import { ServerRequest, serve, HTTPOptions, HTTPSOptions, serveTLS, Server } from "https://deno.land/std/http/server.ts";
+import { 
+    ServerRequest, 
+    serve, 
+    HTTPOptions, 
+    HTTPSOptions, 
+    serveTLS, 
+    Server 
+} from "https://deno.land/std@0.92.0/http/server.ts";
 
 type TBody = Uint8Array | Deno.Reader | string;
 export type NextFunction = (err?: any) => Promise<void> | void;
