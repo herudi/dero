@@ -29,7 +29,7 @@ const validator = () => {
         vs.applySchemaObject(schema, req.parsedBody, (err) => {
             const key = err.keyStack.shift();
             if (key) {
-                message = {};
+                if (message === undefined) message = {};
                 message[key] = "is required";
             }
         });
