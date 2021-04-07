@@ -1,18 +1,19 @@
 import { ServerRequest, serve, HTTPOptions, HTTPSOptions, serveTLS, Server } from "https://deno.land/std/http/server.ts";
 
+type TBody = Uint8Array | Deno.Reader | string;
 export type NextFunction = (err?: any) => Promise<void> | void;
 export interface Request extends ServerRequest {
-    originalUrl?: string;
-    params?: { [k: string]: string };
-    _parsedUrl?: { [k: string]: any };
-    path?: string;
-    query?: { [k: string]: string };
-    search?: string;
-    pond(body?: Uint8Array | Deno.Reader | string | { [k: string]: any } | undefined, opts?: PondOptions): Promise<void>;
+    originalUrl: string;
+    params: { [k: string]: any };
+    _parsedUrl: { [k: string]: any };
+    path: string;
+    query: { [k: string]: any };
+    search: string | null;
+    pond(body?: TBody | { [k: string]: any }, opts?: PondOptions): Promise<void>;
     [key: string]: any;
 };
 export interface Response {
-    locals?: any;
+    locals: any;
     [key: string]: any;
 };
 type PondOptions = {
@@ -26,7 +27,7 @@ type THandlers<Req, Res> = Array<THandler<Req, Res> | THandler<Req, Res>[]>;
 const JSON_TYPE_CHARSET = "application/json; charset=utf-8";
 
 function findFns(arr: any[]): any[] {
-    let ret: any[] = [], i = 0, len = arr.length;
+    let ret = [] as any, i = 0, len = arr.length;
     for (; i < len; i++) {
         if (Array.isArray(arr[i])) ret = ret.concat(findFns(arr[i]));
         else if (typeof arr[i] === 'function') ret.push(arr[i]);
@@ -35,7 +36,7 @@ function findFns(arr: any[]): any[] {
 }
 function modPath(prefix: string) {
     return function (req: Request, res: Response, next: NextFunction) {
-        req.url = (req.url as string).substring(prefix.length) || '/';
+        req.url = req.url.substring(prefix.length) || '/';
         req.path = req.path ? req.path.substring(prefix.length) || '/' : '/';
         next();
     }
@@ -324,9 +325,11 @@ export class Dero<
         req.path = url.pathname;
         req.query = this.parsequery(url.search);
         req.search = url.search;
-        req.pond = (body?: Uint8Array | Deno.Reader | string | { [k: string]: any } | undefined, opts: PondOptions = {}) => {
+        req.pond = (body?: TBody | { [k: string]: any }, opts: PondOptions = {}) => {
             if (typeof body === 'object') {
-                if (body instanceof Uint8Array) return req.respond({ body, ...opts });
+                if (body instanceof Uint8Array || typeof (body as Deno.Reader).read === 'function') {
+                    return req.respond({ body: body as TBody, ...opts });
+                }
                 body = JSON.stringify(body);
                 opts.headers = opts.headers || new Headers();
                 opts.headers.set("Content-Type", JSON_TYPE_CHARSET);
