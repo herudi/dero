@@ -13,7 +13,7 @@ Fast micro framework for Deno.
   The benchmarks try to 1000 route and call http://localhost:3000/hello999.
   Example :
   ```ts
-    import { dero } from "https://deno.land/x/dero@0.0.8/mod.ts";
+    import { dero } from "https://deno.land/x/dero@0.0.9/mod.ts";
 
     for (let i = 0; i < 1000; i++) {
         dero.get('/hello' + i, (req) => {
@@ -75,7 +75,7 @@ Fast micro framework for Deno.
 
 ## Usage
 ```ts
-import { dero } from "https://deno.land/x/dero@0.0.8/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.0.9/mod.ts";
 
 // METHODS => GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, ANY, TRACE, CONNECT.
 dero.get("/hello", (req) => {
@@ -103,7 +103,7 @@ dero.get("/hello", (req) => {
 
 ## Middleware
 ```ts
-import { dero } from "https://deno.land/x/dero@0.0.8/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.0.9/mod.ts";
 
 dero.use((req, res, next) => {
     req.foo = "foo";
@@ -126,7 +126,7 @@ await dero.listen(3000);
 ```
 ## Sub Router
 ```ts
-import { dero, Router } from "https://deno.land/x/dero@0.0.8/mod.ts";
+import { dero, Router } from "https://deno.land/x/dero@0.0.9/mod.ts";
 
 const router = new Router();
 router.get("/hello", (req) => {
@@ -139,11 +139,17 @@ await dero.listen(3000);
 ```
 
 ## req.pond(body?, opts?)
-### body
-req.pond send data with type string | object json | Uint8Array | Deno.Reader.
-### opts
-is an optional object status | headers.
+Comparison req.pond and req.respond.
+```ts
+// this is req.respond
+req.respond({ body, status, headers });
+// where body is string | Uint8Array | Deno.Reader | undefined
 
+// this is req.pond
+req.pond(body, { status, headers });
+// where body is string | json | Uint8Array | Deno.Reader | undefined
+```
+## Example using req.pond
 ```ts
 ...
 dero.get("/html", (req) => {

@@ -22,6 +22,7 @@ const bodyValidator = (req: Request, res: Response, next: NextFunction) => {
 export default class ItemsRouter extends Router<Request & ReqWithBody> {
     constructor(){
         super();
+        // find all items
         this.get("/items", async (req) => {
             const sql = `select * from items`;
             const { rows } = await client.execute(sql);

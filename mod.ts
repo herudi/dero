@@ -1,14 +1,14 @@
-import { 
-    ServerRequest, 
-    serve, 
-    HTTPOptions, 
-    HTTPSOptions, 
-    serveTLS, 
-    Server 
-} from "https://deno.land/std@0.92.0/http/server.ts";
+import {
+    ServerRequest,
+    serve,
+    HTTPOptions,
+    HTTPSOptions,
+    serveTLS,
+    Server
+} from "https://deno.land/std/http/server.ts";
 
 type TBody = Uint8Array | Deno.Reader | string;
-export type NextFunction = (err?: any) => Promise<void> | void;
+export type NextFunction = (err?: any) => void;
 export interface Request extends ServerRequest {
     originalUrl: string;
     params: { [k: string]: any };
@@ -28,7 +28,7 @@ type PondOptions = {
     headers?: Headers;
     [key: string]: any;
 };
-type THandler<Req, Res> = (req: Req, res: Res, next: NextFunction) => Promise<void> | void;
+type THandler<Req, Res> = (req: Req, res: Res, next: NextFunction) => any;
 type THandlers<Req, Res> = Array<THandler<Req, Res> | THandler<Req, Res>[]>;
 
 const JSON_TYPE_CHARSET = "application/json; charset=utf-8";
@@ -112,6 +112,19 @@ function parseurl(req: Request) {
 }
 function parsequery(query: string) {
     return query ? Object.fromEntries(new URLSearchParams(query)) : {};
+}
+function depError(err: any, req: Request) {
+    let status = err.code || err.status || err.statusCode || 500;
+    if (typeof status !== 'number') status = 500;
+    let stack = err.stack ? err.stack.split('\n') : [""];
+    stack.shift();
+    req.pond({
+        statusCode: status,
+        message: err.message,
+        stack: stack
+            .filter((line: string | string[]) => line.indexOf('file://') !== -1)
+            .map((line: string) => line.trim())
+    }, { status });
 }
 
 export class Router<
@@ -238,19 +251,12 @@ export class Dero<
         this.parsequery = parsequery;
         this.server = undefined;
     }
-    #onError = (err: any, req: Req, res: Res, next: NextFunction) => {
-        let code = err.code || err.status || err.statusCode || 500;
-        if (typeof code !== "number") code = 500;
-        req.respond({
-            status: code,
-            body: err.stack || 'Something went wrong'
-        })
-    }
+    #onError = (err: any, req: Req, res: Res, next: NextFunction) => depError(err, req);
     #onNotFound = (req: Req, res: Res, next: NextFunction) => {
-        req.respond({
-            status: 404,
-            body: `Route ${req.method}${req.url} not found`
-        })
+        req.pond({
+            statusCode: 404,
+            message: `Route ${req.method}${req.url} not found`
+        }, { status: 404 });
     }
     #addRoutes = (arg: string, args: any[], routes: any[]) => {
         let prefix = '', midds = findFns(args), i = 0, len = routes.length;
@@ -264,8 +270,18 @@ export class Dero<
     onNotfound(notFoundFunction: THandler<Req, Res>) {
         this.#onNotFound = notFoundFunction;
     }
-    onError(errorFunction: (err: any, req: Req, res: Res, next: NextFunction) => void) {
-        this.#onError = errorFunction;
+    onError(errorFunction: (err: any, req: Req, res: Res, next: NextFunction) => any) {
+        this.#onError = (err: any, req: Req, res: Res, next: NextFunction) => {
+            let ret;
+            try {
+                ret = errorFunction(err, req, res, next);
+            } catch (err) {
+                return depError(err, req);
+            }
+            if (ret && typeof ret.then === 'function') {
+                ret.then(void 0).catch((err: any) => depError(err, req));
+            };
+        };
     }
     use(prefix: string, routers: Router[]): this;
     use(prefix: string, router: Router): this;
@@ -319,13 +335,15 @@ export class Dero<
             i = 0,
             next: NextFunction = (err?: any) => {
                 if (err === void 0) {
-                    let ret: Promise<any>;
+                    let ret;
                     try {
                         ret = obj.handlers[i++](req, res, next);
                     } catch (error) {
                         return next(error);
                     }
-                    if (ret) ret.then(void 0).catch(next);
+                    if (ret && typeof ret.then === 'function') {
+                        ret.then(void 0).catch(next);
+                    };
                 } else this.#onError(err, req, res, next);
             };
         res.locals = {};
@@ -349,7 +367,7 @@ export class Dero<
     }
     async listen(opts?: number | HTTPSOptions | HTTPOptions | undefined, callback?: (err?: Error) => void | Promise<void>) {
         if (this.server === void 0 && opts === void 0) {
-            if (callback) callback(new Error("Options or port is required"));
+            console.log(new Error("listen() ? : Options or port is required"));
             return;
         }
         let isTls = false;
