@@ -2,7 +2,7 @@ import { Dero, json, urlencoded, Request, Response, NextFunction } from "./deps.
 import ItemsRouter from './items-router.ts';
 import client from './client.ts';
 
-export default class App extends Dero {
+class App extends Dero {
     constructor(){
         super();
         this.use(json, urlencoded);
@@ -24,3 +24,5 @@ export default class App extends Dero {
         })
     }
 }
+
+await new App().start(3000);

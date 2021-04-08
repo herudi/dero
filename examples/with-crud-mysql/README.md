@@ -18,7 +18,7 @@ ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 ### Run deno
 ```bash
-deno run --allow-net --allow-read mod.ts
+deno run --allow-net --allow-read app.ts
 ```
 
 ### Rest APIs
