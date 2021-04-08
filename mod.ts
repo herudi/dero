@@ -319,11 +319,13 @@ export class Dero<
             i = 0,
             next: NextFunction = (err?: any) => {
                 if (err === void 0) {
+                    let ret: Promise<any>;
                     try {
-                        obj.handlers[i++](req, res, next);
+                        ret = obj.handlers[i++](req, res, next);
                     } catch (error) {
-                        next(error);
+                        return next(error);
                     }
+                    if (ret) ret.then(void 0).catch(next);
                 } else this.#onError(err, req, res, next);
             };
         res.locals = {};
@@ -345,7 +347,7 @@ export class Dero<
         }
         next();
     }
-    async listen(opts?: number | HTTPSOptions | HTTPOptions | undefined, callback?: (err?: Error) => void) {
+    async listen(opts?: number | HTTPSOptions | HTTPOptions | undefined, callback?: (err?: Error) => void | Promise<void>) {
         if (this.server === void 0 && opts === void 0) {
             if (callback) callback(new Error("Options or port is required"));
             return;
