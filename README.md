@@ -6,6 +6,7 @@ Fast micro framework for Deno.
 - Easy to use (inspired by [expressjs](https://github.com/expressjs/express) middleware (req, res, next)).
 - No Third Party Modules by default.
 - Robust routing.
+- Routing Controller ready.
 
 <details>
   <summary>Benchmarks</summary>
@@ -13,7 +14,7 @@ Fast micro framework for Deno.
   The benchmarks try to 1000 route and call http://localhost:3000/hello999.
   Example :
   ```ts
-    import { dero } from "https://deno.land/x/dero@0.0.9/mod.ts";
+    import { dero } from "https://deno.land/x/dero@0.1.0/mod.ts";
 
     for (let i = 0; i < 1000; i++) {
         dero.get('/hello' + i, (req) => {
@@ -75,11 +76,13 @@ Fast micro framework for Deno.
 
 ## Usage
 ```ts
-import { dero } from "https://deno.land/x/dero@0.0.9/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.1.0/mod.ts";
 
 // METHODS => GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, ANY, TRACE, CONNECT.
 dero.get("/hello", (req) => {
     req.pond(`Hello Dero`);
+    // or
+    // return `Hello Dero`;
 });
 
 await dero.listen(3000);
@@ -87,6 +90,44 @@ await dero.listen(3000);
 ## Run Deno
 ```bash
 deno run --allow-net yourfile.ts
+```
+
+## Routing Controller
+Decorator => 
+@Controller(path?: string)
+@[METHODS](path?: string) // METHODS => GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, ANY, TRACE, CONNECT.
+@Wares(...middlewareFunction)
+
+```ts
+import { dero, Controller, Get, Post, Wares, addControllers } from "https://deno.land/x/dero@0.1.0/mod.ts";
+
+@Controller()
+class UserController {
+    @Get("/user")
+    findAll() {
+        return `Hello from controller user`;
+    }
+
+    @Wares((req, res, next) => {
+        req.foo = "foo";
+        next();
+    })
+    @Get("/user/:id")
+    findById(req: Request) {
+        return `Hello user ${req.params.id} ${req.foo}`;
+    }
+
+    @Post("/user")
+    save() {
+        return ["Created", { status: 201 }];
+        // or
+        // req.pond("created", { status: 201 })
+    }
+}
+
+dero.use("/api/v1", addControllers([UserController]));
+
+await dero.listen(3000);
 ```
 ## Config (if you want)
 ```ts
@@ -103,7 +144,7 @@ dero.get("/hello", (req) => {
 
 ## Middleware
 ```ts
-import { dero } from "https://deno.land/x/dero@0.0.9/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.1.0/mod.ts";
 
 dero.use((req, res, next) => {
     req.foo = "foo";
@@ -126,7 +167,7 @@ await dero.listen(3000);
 ```
 ## Sub Router
 ```ts
-import { dero, Router } from "https://deno.land/x/dero@0.0.9/mod.ts";
+import { dero, Router } from "https://deno.land/x/dero@0.1.0/mod.ts";
 
 const router = new Router();
 router.get("/hello", (req) => {
