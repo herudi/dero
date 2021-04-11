@@ -51,13 +51,19 @@ export default class Router<
     }
     findRoute(method: string, url: string, notFound: THandler<Req, Res>) {
         let params: { [key: string]: any } = {},
-            handlers: any[] = [];
+            handlers: any[] = [],
+            opts;
         if (this.route[method + url]) {
             let obj = this.route[method + url];
+            opts = obj.opts;
             if (obj.m) handlers = obj.handlers;
             else {
                 handlers = this.#addMidd(this.midds, notFound, obj.handlers);
-                this.route[method + url] = { m: true, handlers };
+                this.route[method + url] = { 
+                    m: true, 
+                    handlers, 
+                    opts: obj.opts 
+                };
             }
         } else {
             let key = '';
@@ -68,11 +74,17 @@ export default class Router<
             else key = url.substring(0, url.lastIndexOf('/'));
             if (this.route[method + key + '/:p']) {
                 let obj = this.route[method + key + '/:p'];
+                opts = obj.opts;
                 params[obj.params] = url.substring(url.lastIndexOf('/') + 1);
                 if (obj.m) handlers = obj.handlers;
                 else {
                     handlers = this.#addMidd(this.midds, notFound, obj.handlers);
-                    this.route[method + key + '/:p'] = { m: true, params: obj.params, handlers };
+                    this.route[method + key + '/:p'] = { 
+                        m: true, 
+                        params: obj.params, 
+                        handlers, 
+                        opts: obj.opts 
+                    };
                 }
             } else {
                 let i = 0,
@@ -92,7 +104,13 @@ export default class Router<
                             else {
                                 handlers = this.#addMidd(this.midds, notFound, obj.handlers);
                                 if (this.route[method] && this.route[method][i]) {
-                                    this.route[method][i] = { m: true, params: obj.params, handlers, pathx: obj.pathx };
+                                    this.route[method][i] = { 
+                                        m: true, 
+                                        params: obj.params, 
+                                        handlers, 
+                                        pathx: obj.pathx, 
+                                        opts: obj.opts 
+                                    };
                                 }
                             }
                             if (obj.params) {
@@ -100,6 +118,7 @@ export default class Router<
                                 while (j < obj.params.length) params[obj.params[j]] = matches[++j] || null;
                                 if (params['wild']) params['wild'] = params['wild'].split('/');
                             }
+                            opts = obj.opts;
                             break;
                         }
                         i++;
@@ -108,6 +127,6 @@ export default class Router<
                 if (nf) handlers = this.#addMidd(this.midds, notFound, [], url, this.pmidds);
             }
         }
-        return { params, handlers };
+        return { params, handlers, opts };
     }
 }

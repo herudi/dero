@@ -8,6 +8,7 @@ export interface Request extends ServerRequest {
     _parsedUrl: { [k: string]: any };
     path: string;
     query: { [k: string]: any };
+    options: PondOptions;
     search: string | null;
     pond(body?: TBody | { [k: string]: any }, opts?: PondOptions): Promise<void>;
     [key: string]: any;
@@ -18,7 +19,7 @@ export interface Response {
 };
 export type PondOptions = {
     status?: number;
-    headers?: Headers;
+    headers?: any;
     [key: string]: any;
 };
 export type THandler<

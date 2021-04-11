@@ -19,14 +19,12 @@ const html =
     </html>`;
 
 dero.get(browserPath, (req) => {
-    const headers = new Headers();
-    headers.set("Content-Type", "application/javascript");
+    const headers = {"Content-Type": "application/javascript"};
     req.pond(js, { headers });
 });
 
 dero.get("/", (req, res, next) => {
-    const headers = new Headers();
-    headers.set("Content-Type", "text/html");
+    const headers = {"Content-Type": "text/html"};
     req.pond(html, { headers });
 });
 

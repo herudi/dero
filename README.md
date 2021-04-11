@@ -14,7 +14,7 @@ Fast micro framework for Deno.
   The benchmarks try to 1000 route and call http://localhost:3000/hello999.
   Example :
   ```ts
-    import { dero } from "https://deno.land/x/dero@0.1.0/mod.ts";
+    import { dero } from "https://deno.land/x/dero@0.1.1/mod.ts";
 
     for (let i = 0; i < 1000; i++) {
         dero.get('/hello' + i, (req) => {
@@ -76,7 +76,7 @@ Fast micro framework for Deno.
 
 ## Usage
 ```ts
-import { dero } from "https://deno.land/x/dero@0.1.0/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.1.1/mod.ts";
 
 // METHODS => GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, ANY, TRACE, CONNECT.
 dero.get("/hello", (req) => {
@@ -93,13 +93,15 @@ deno run --allow-net yourfile.ts
 ```
 
 ## Routing Controller
-Decorator => 
-@Controller(path?: string)
-@[METHODS](path?: string) // METHODS => GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, ANY, TRACE, CONNECT.
-@Wares(...middlewareFunction)
+Decorator => <br>
+@Controller(path?: string)<br>
+@Wares(...middlewareFunction)<br>
+@[METHODS](path?: string) // METHODS => GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, ANY, TRACE, CONNECT.<br>
+@Status(code: number)<br>
+@Header(object)<br>
 
 ```ts
-import { dero, Controller, Get, Post, Wares, addControllers } from "https://deno.land/x/dero@0.1.0/mod.ts";
+import { dero, Controller, Get, Post, Wares, addControllers, Status, Header } from "https://deno.land/x/dero@0.1.1/mod.ts";
 
 @Controller()
 class UserController {
@@ -117,11 +119,18 @@ class UserController {
         return `Hello user ${req.params.id} ${req.foo}`;
     }
 
+    @Status(201)
     @Post("/user")
     save() {
-        return ["Created", { status: 201 }];
+        return "Created";
         // or
         // req.pond("created", { status: 201 })
+    }
+
+    @Header({ "Content-Type": "text/css" })
+    @Get("/sendFile")
+    sendFile() {
+        return Deno.readFile("./public/style.css");
     }
 }
 
@@ -144,7 +153,7 @@ dero.get("/hello", (req) => {
 
 ## Middleware
 ```ts
-import { dero } from "https://deno.land/x/dero@0.1.0/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.1.1/mod.ts";
 
 dero.use((req, res, next) => {
     req.foo = "foo";
@@ -167,7 +176,7 @@ await dero.listen(3000);
 ```
 ## Sub Router
 ```ts
-import { dero, Router } from "https://deno.land/x/dero@0.1.0/mod.ts";
+import { dero, Router } from "https://deno.land/x/dero@0.1.1/mod.ts";
 
 const router = new Router();
 router.get("/hello", (req) => {
@@ -194,24 +203,21 @@ req.pond(body, { status, headers });
 ```ts
 ...
 dero.get("/html", (req) => {
-    const headers = new Headers();
-    headers.set("Content-Type", "text/html");
+    const headers = {"Content-Type": "text/html"};
     req.pond("<h1>Hello from html</h1>", { status: 200, headers });
 });
 dero.get("/json", (req) => {
     req.pond({ name: "Dero" });
 });
 dero.get("/sendFile", async (req) => {
-    const headers = new Headers();
-    headers.set("Content-Type", "text/css; charset=utf-8");
+    const headers = {"Content-Type": "text/css"};
     req.pond(
         await Deno.readFile(`${Deno.cwd()}/public/style.css`), 
         { headers }
     );
 })
 dero.get("/download", async (req) => {
-    const headers = new Headers();
-    headers.set("Content-disposition", "attachment; filename=style.css");
+    const headers = {"Content-disposition": "attachment; filename=style.css"};
     req.pond(
         await Deno.readFile(`${Deno.cwd()}/public/style.css`), 
         { headers }

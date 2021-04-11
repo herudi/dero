@@ -1,4 +1,4 @@
-import { Dero, addControllers, Controller, Get, Post, Put, Delete, Wares, Request as DeroRequest, Response, NextFunction } from "./../mod.ts";
+import { Dero, addControllers, Controller, Get, Post, Put, Delete, Wares, Status, Request as DeroRequest, Response, NextFunction } from "./../mod.ts";
 import { json, urlencoded, ReqWithBody } from 'https://deno.land/x/parsec/mod.ts';
 import vs from "https://deno.land/x/value_schema/mod.ts";
 
@@ -60,21 +60,17 @@ class ItemsController {
         }
     }
 
+    @Status(201)
     @Wares<Request>(validator())
     @Post()
     save(req: Request) {
         let body = req.parsedBody as TItem;
         body.id = new Date().getTime().toString();
         db.push(body as TItem);
-        return [
-            {
-                statusCode: 201,
-                message: "Success save item"
-            },
-            {
-                status: 201
-            }
-        ];
+        return {
+            statusCode: 201,
+            message: "Success save item"
+        };
     }
 
     @Wares<Request>(validator())

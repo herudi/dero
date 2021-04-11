@@ -5,13 +5,10 @@ import Router from "./router.ts";
 
 const JSON_TYPE_CHARSET = "application/json; charset=utf-8";
 
-async function withPromise(handler: Promise<THandler>, req: Request, next: NextFunction, isDepError: boolean = false) {
+async function withPromise(handler: Promise<THandler>, req: Request, res: Response, next: NextFunction, isDepError: boolean = false) {
     try {
         let ret = await handler;
         if (ret === void 0) return;
-        if (Array.isArray(ret)) {
-            return req.pond(ret[0], ret[1]);
-        }
         req.pond(ret);
     } catch (err) {
         if (isDepError) depError(err, req);
@@ -56,10 +53,9 @@ export class Dero<
         if (typeof arg === 'string' && arg.length > 1 && arg.charAt(0) === '/') prefix = arg;
         for (; i < len; i++) {
             let el = routes[i];
-            if (el.method !== void 0) {
-                el.handlers = midds.concat(el.handlers);
-                this.on(el.method, prefix + el.path, ...el.handlers);
-            }
+            if (el.opts) el.handlers = [el.opts].concat(midds, el.handlers);
+            else el.handlers = midds.concat(el.handlers);
+            this.on(el.method, prefix + el.path, ...el.handlers);
         }
     }
     onNotfound(notFoundFunction: THandler<Req, Res>) {
@@ -75,10 +71,7 @@ export class Dero<
             }
             if (ret) {
                 if (typeof ret.then === 'function') {
-                    return withPromise(ret, req, next, true);
-                }
-                if (Array.isArray(ret)) {
-                    return req.pond(ret[0], ret[1]);
+                    return withPromise(ret, req, res, next, true);
                 }
                 req.pond(ret);
             };
@@ -119,15 +112,16 @@ export class Dero<
     }
     on(method: string, path: string, ...handlers: THandlers<Req, Res>): this {
         let fns = findFns(handlers);
+        let opts = typeof handlers[0] === 'object' ? handlers[0] : {};
         let obj = toPathx(path, method === 'ANY');
         if (obj !== void 0) {
             if (obj.key) {
-                this.route[method + obj.key] = { params: obj.params, handlers: fns };
+                this.route[method + obj.key] = { params: obj.params, handlers: fns, opts };
             } else {
                 if (this.route[method] === void 0) this.route[method] = [];
-                this.route[method].push({ ...obj, handlers: fns });
+                this.route[method].push({ ...obj, handlers: fns, opts });
             }
-        } else this.route[method + path] = { handlers: fns };
+        } else this.route[method + path] = { handlers: fns, opts };
         return this;
     }
     lookup(req: Req, res = {} as Res) {
@@ -144,10 +138,7 @@ export class Dero<
                     }
                     if (ret) {
                         if (typeof ret.then === 'function') {
-                            return withPromise(ret, req, next);
-                        }
-                        if (Array.isArray(ret)) {
-                            return req.pond(ret[0], ret[1]);
+                            return withPromise(ret, req, res, next);
                         }
                         req.pond(ret);
                     };
@@ -159,7 +150,9 @@ export class Dero<
         req.path = url.pathname;
         req.query = this.parsequery(url.search);
         req.search = url.search;
-        req.pond = (body?: TBody | { [k: string]: any }, opts: PondOptions = {}) => {
+        req.options = obj.opts;
+        req.pond = (body?: TBody | { [k: string]: any }, opts: PondOptions = req.options) => {
+            if (opts.headers) opts.headers = new Headers(opts.headers);
             if (typeof body === 'object') {
                 if (body instanceof Uint8Array || typeof (body as Deno.Reader).read === 'function') {
                     return req.respond({ body: body as TBody, ...opts });
@@ -169,7 +162,7 @@ export class Dero<
                 opts.headers.set("Content-Type", JSON_TYPE_CHARSET);
             }
             return req.respond({ body, ...opts });
-        }
+        };
         next();
     }
     async listen(opts?: number | HTTPSOptions | HTTPOptions | undefined, callback?: (err?: Error) => void | Promise<void>) {

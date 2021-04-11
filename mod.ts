@@ -13,5 +13,7 @@ export {
     Head, 
     Connect, 
     Controller, 
+    Header, 
+    Status, 
     Wares 
 } from "./decorators.ts";

@@ -47,7 +47,8 @@ class App extends Dero {
         this.onError((err: any, req: Request, res: Response, next: NextFunction) => {
             let status = err.code || err.status || err.statusCode || 500;
             if (typeof status !== 'number') status = 500;
-            return [err.message || "Error Something", { status }];
+            req.options = { status };
+            return err.message || "Error Something";
         });
     }
 

@@ -1,10 +1,14 @@
-import { THandlers, Request, Response } from "./types.ts";
+import { THandlers, Request, Response, NextFunction, THandler } from "./types.ts";
 import { findFns } from "./utils.ts";
 
 function withMethodDecorator(method: string, path: string = "") {
-    return (_: any, __: any, descriptor: PropertyDescriptor) => {
-        descriptor.value = { method: method, path, handlers: [descriptor.value] };
-        return descriptor;
+    return (_: any, __: any, des: PropertyDescriptor) => {
+        if (typeof des.value === "object") {
+            des.value = { method, path, handlers: des.value?.handlers, opts: des.value?.opts };
+        }else{
+            des.value = { method, path, handlers: [des.value], opts: {} };
+        }
+        return des;
     }
 }
 export const Get = (path: string = "") => withMethodDecorator("GET", path);
@@ -23,13 +27,36 @@ export function Wares<
     Res extends Response = Response
 >(...handlers: THandlers<Req, Res>) {
     let fns = findFns(handlers);
-    return (_: any, __: any, descriptor: PropertyDescriptor) => {
-        if (typeof descriptor.value === 'object') {
-            let obj = descriptor.value;
+    return (_: any, __: any, des: PropertyDescriptor) => {
+        if (typeof des.value === 'object') {
+            let obj = des.value;
             obj.handlers = fns.concat(obj.handlers);
-            descriptor.value = obj;
-            return descriptor;
+            des.value = obj;
+            return des;
         }
+    }
+}
+export function Status(status: number) {
+    return (_: any, __: any, des: PropertyDescriptor) => {
+        let obj = typeof des.value === "object" ? des.value : { opts: {}, handlers: [des.value] };
+        obj.opts = { ...obj.opts, status };
+        des.value = obj;
+        return des;
+    }
+}
+export function Header(header: { [k: string]: any } | THandler) {
+    return (_: any, __: any, des: PropertyDescriptor) => {
+        let obj = typeof des.value === "object" ? des.value : { opts: {}, handlers: [des.value] };
+        if (typeof header === 'function') {
+            obj.handlers = [(req: Request, res: Response, next: NextFunction) => {
+                req.options = { ...obj.opts, headers: header(req, res, next) };
+                next();
+            }].concat(obj.handlers);
+        } else {
+            obj.opts = { ...obj.opts, header };
+        }
+        des.value = obj;
+        return des;
     }
 }
 
@@ -44,6 +71,7 @@ export function Controller(path: string = "") {
                 if (el !== target && typeof el === 'object') {
                     c_routes.push({
                         method: el.method,
+                        opts: el.opts,
                         path: path + el.path,
                         handlers: el.handlers
                     });

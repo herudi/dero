@@ -9,6 +9,7 @@ import {
     Put,
     Delete,
     Wares,
+    Status,
     Controller
 } from "./deps.ts";
 import client from "./client.ts";
@@ -69,6 +70,7 @@ class ItemsRouter {
         }
     }
 
+    @Status(201)
     @Wares(bodyValidator)
     @Post()
     async save(req: Request & ReqWithBody) {
@@ -79,15 +81,10 @@ class ItemsRouter {
             body.brand,
             body.price
         ]);
-        return [
-            {
-                statusCode: 201,
-                messsage: "Success save items"
-            },
-            {
-                status: 201
-            }
-        ];
+        return {
+            statusCode: 201,
+            messsage: "Success save items"
+        };
     }
 
     @Wares(bodyValidator)

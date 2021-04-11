@@ -6,7 +6,7 @@ type TOpts = {
     [k: string]: any;
 }
 type TRenderOpts = {
-    headers: Headers;
+    headers: any;
     status: number;
     [k: string]: any;
 }
@@ -15,8 +15,8 @@ function renderEngine({ views = `${Deno.cwd()}/views/` }: TOpts = {}) {
     return (req: Request, res: Response, next: NextFunction) => {
         res.render = async (name: string, params = {}, ...args: any) => {
             let opts = args[args.length - 1] as TRenderOpts || {};
-            opts.headers = opts.headers || new Headers();
-            opts.headers.set("Content-Type", "text/html");
+            opts.headers = opts.headers || {};
+            opts.headers = {"Content-Type": "text/html"};
             req.pond(await renderFile(name, params, ...args), opts);
         }
         next();
@@ -26,9 +26,8 @@ function renderEngine({ views = `${Deno.cwd()}/views/` }: TOpts = {}) {
 dero
     .use(renderEngine())
     .get("/hello/:name", (req, res) => {
-        const headers = new Headers();
+        const headers = { "x-powered-by": "anything" };
         // example more header
-        headers.set("x-powered-by", "anything");
         res.render("hello", req.params, { headers });
     })
     .get("/hello", (req, res) => {

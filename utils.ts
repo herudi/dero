@@ -53,7 +53,11 @@ export function toPathx(path: string | RegExp, isAny: boolean) {
                 let isQuest = obj.indexOf('?') !== -1, isExt = obj.indexOf('.') !== -1;
                 if (isQuest && !isExt) pattern += strRegQ;
                 else pattern += strReg;
-                if (isExt) pattern += (isQuest ? '?' : '') + '\\' + obj.substring(obj.indexOf('.'));
+                if (isExt) {
+                    let _pattern = pattern;
+                    _pattern = _pattern.replace(strReg, "");
+                    pattern = _pattern + (isQuest ? '?/' : '/') + '([\\w-]+' + obj.substring(obj.indexOf('.')) + ")";
+                }
             } else pattern += '/' + obj;
         };
     } else pattern = path.replace(/\/:[a-z_-]+/gi, strReg);
