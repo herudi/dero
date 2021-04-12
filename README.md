@@ -14,7 +14,7 @@ Fast micro framework for Deno.
   The benchmarks try to 1000 route and call http://localhost:3000/hello999.
   Example :
   ```ts
-    import { dero } from "https://deno.land/x/dero@0.1.1/mod.ts";
+    import { dero } from "https://deno.land/x/dero@0.1.2/mod.ts";
 
     for (let i = 0; i < 1000; i++) {
         dero.get('/hello' + i, (req) => {
@@ -76,7 +76,7 @@ Fast micro framework for Deno.
 
 ## Usage
 ```ts
-import { dero } from "https://deno.land/x/dero@0.1.1/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.1.2/mod.ts";
 
 // METHODS => GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, ANY, TRACE, CONNECT.
 dero.get("/hello", (req) => {
@@ -101,7 +101,7 @@ Decorator => <br>
 @Header(object)<br>
 
 ```ts
-import { dero, Controller, Get, Post, Wares, addControllers, Status, Header } from "https://deno.land/x/dero@0.1.1/mod.ts";
+import { dero, Controller, Get, Post, Wares, addControllers, Status, Header } from "https://deno.land/x/dero@0.1.2/mod.ts";
 
 @Controller()
 class UserController {
@@ -153,7 +153,7 @@ dero.get("/hello", (req) => {
 
 ## Middleware
 ```ts
-import { dero } from "https://deno.land/x/dero@0.1.1/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.1.2/mod.ts";
 
 dero.use((req, res, next) => {
     req.foo = "foo";
@@ -176,7 +176,7 @@ await dero.listen(3000);
 ```
 ## Sub Router
 ```ts
-import { dero, Router } from "https://deno.land/x/dero@0.1.1/mod.ts";
+import { dero, Router } from "https://deno.land/x/dero@0.1.2/mod.ts";
 
 const router = new Router();
 router.get("/hello", (req) => {
@@ -209,19 +209,18 @@ dero.get("/html", (req) => {
 dero.get("/json", (req) => {
     req.pond({ name: "Dero" });
 });
-dero.get("/sendFile", async (req) => {
-    const headers = {"Content-Type": "text/css"};
-    req.pond(
-        await Deno.readFile(`${Deno.cwd()}/public/style.css`), 
-        { headers }
-    );
-})
 dero.get("/download", async (req) => {
     const headers = {"Content-disposition": "attachment; filename=style.css"};
     req.pond(
         await Deno.readFile(`${Deno.cwd()}/public/style.css`), 
         { headers }
     );
+})
+
+//if using return example sendFile css
+dero.get("/sendFile", async (req) => {
+    req.options = { headers: {"Content-Type": "text/css"} };
+    return Deno.readFile(`${Deno.cwd()}/public/style.css`);
 })
 ...
 ```
@@ -230,6 +229,9 @@ dero.get("/download", async (req) => {
 Request by default from ServerRequest Deno.
 ### more request
 ```ts
+// req.options is a options response for req.pond.
+req.options = { status: 200, headers: object_headers };
+
 // query => /path?name=john
 req.query
 
