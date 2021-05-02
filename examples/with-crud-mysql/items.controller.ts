@@ -1,6 +1,6 @@
 import {
-    Request,
-    Response,
+    HttpRequest,
+    HttpResponse,
     NextFunction,
     vs,
     ReqWithBody,
@@ -14,7 +14,7 @@ import {
 } from "./deps.ts";
 import client from "./client.ts";
 
-const bodyValidator = (req: Request & ReqWithBody, res: Response, next: NextFunction) => {
+const bodyValidator = (req: HttpRequest & ReqWithBody, res: HttpResponse, next: NextFunction) => {
     const schema = {
         name: vs.string(),
         brand: vs.string(),
@@ -46,7 +46,7 @@ class ItemsRouter {
     }
 
     @Get("/:id")
-    async findById(req: Request) {
+    async findById(req: HttpRequest) {
         const sql = `select * from items where id = ?`;
         const { rows } = await client.execute(sql, [req.params.id]);
         const data = rows && rows.length ? rows[0] : null;
@@ -57,7 +57,7 @@ class ItemsRouter {
     }
 
     @Get("-search")
-    async search(req: Request) {
+    async search(req: HttpRequest) {
         const qry = req.query;
         if (!qry.text) {
             throw new Error("query parameter text is required");
@@ -73,7 +73,7 @@ class ItemsRouter {
     @Status(201)
     @Wares(bodyValidator)
     @Post()
-    async save(req: Request & ReqWithBody) {
+    async save(req: HttpRequest & ReqWithBody) {
         const body = req.parsedBody || {};
         const sql = `insert into items(name, brand, price) values(?, ?, ?)`;
         await client.execute(sql, [
@@ -89,7 +89,7 @@ class ItemsRouter {
 
     @Wares(bodyValidator)
     @Put("/:id")
-    async update(req: Request & ReqWithBody) {
+    async update(req: HttpRequest & ReqWithBody) {
         const body = req.parsedBody || {};
         const sql = `update items set name = ?, brand = ?, price = ? where id = ?`;
         await client.execute(sql, [
@@ -105,7 +105,7 @@ class ItemsRouter {
     }
 
     @Delete("/:id")
-    async destroy(req: Request) {
+    async destroy(req: HttpRequest) {
         const sql = `delete from items where id = ?`;
         await client.execute(sql, [req.params.id]);
         return {

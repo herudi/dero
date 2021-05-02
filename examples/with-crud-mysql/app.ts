@@ -1,4 +1,4 @@
-import { Dero, json, urlencoded, Request, Response, NextFunction, addControllers } from "./deps.ts";
+import { Dero, json, urlencoded, HttpRequest, HttpResponse, NextFunction, addControllers } from "./deps.ts";
 import ItemsController from './items.controller.ts';
 import client from './client.ts';
 
@@ -7,7 +7,7 @@ class App extends Dero {
         super();
         this.use(json, urlencoded);
         this.use("/api/v1", addControllers([ItemsController]));
-        this.onError((err: any, req: Request, res: Response, next: NextFunction) => {
+        this.onError((err: any, req: HttpRequest, res: HttpResponse, next: NextFunction) => {
             let status = err.code || err.status || err.statusCode || 500;
             if (typeof status !== 'number') status = 500;
             req.pond({
@@ -15,7 +15,7 @@ class App extends Dero {
                 message: err.message
             }, { status });
         });
-        this.onNotfound((req: Request, res: Response, next: NextFunction) => {
+        this.onNotfound((req: HttpRequest, res: HttpResponse, next: NextFunction) => {
             req.pond({
                 statusCode: 404,
                 message: `Router ${req.url} not found`

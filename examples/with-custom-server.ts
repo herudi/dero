@@ -1,8 +1,9 @@
 import { serve } from "https://deno.land/std/http/server.ts";
 import { dero } from "./../mod.ts";
 
-dero.server = serve({ port: 3000 });
+dero.get('/hello', _ => "Hello World");
 
-dero
-    .use((req) => req.pond("Hello World"))
-    .listen();
+const server = serve({ port: 3000 });
+for await (const req of server) {
+    dero.lookup(req as any);
+}

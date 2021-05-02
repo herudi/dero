@@ -3,8 +3,8 @@ import {
     Controller, 
     addControllers, 
     Get, 
-    Request, 
-    Response, 
+    HttpRequest, 
+    HttpResponse, 
     NextFunction 
 } from "./../mod.ts";
 
@@ -16,7 +16,7 @@ class UserController {
     }
 
     @Get("/:id")
-    findById(req: Request) {
+    findById(req: HttpRequest) {
         return `Hello user id ${req.params.id}`;
     }
 }
@@ -30,7 +30,7 @@ class ItemsController {
     }
 
     @Get("/:id")
-    findById(req: Request) {
+    findById(req: HttpRequest) {
         return `Hello items id ${req.params.id}`;
     }
 }
@@ -44,7 +44,7 @@ class App extends Dero {
             addControllers([UserController, ItemsController])
         );
 
-        this.onError((err: any, req: Request, res: Response, next: NextFunction) => {
+        this.onError((err: any, req: HttpRequest, res: HttpResponse, next: NextFunction) => {
             let status = err.code || err.status || err.statusCode || 500;
             if (typeof status !== 'number') status = 500;
             req.options = { status };
@@ -54,7 +54,7 @@ class App extends Dero {
 
     // example authenticate
     private authenticate() {
-        return (req: Request, res: Response, next: NextFunction) => {
+        return (req: HttpRequest, res: HttpResponse, next: NextFunction) => {
             const key = req.headers.get("x-api-key");
             if (key && key === "dero") return next();
             next(new Error("Need x-api-key headers"));

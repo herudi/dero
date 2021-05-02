@@ -1,4 +1,4 @@
-import { dero, Request, Response, NextFunction } from "./../mod.ts";
+import { dero, HttpRequest, HttpResponse, NextFunction } from "./../mod.ts";
 import { renderFile, configure } from "https://deno.land/x/eta@v1.11.0/mod.ts"
 
 type TOpts = {
@@ -12,7 +12,7 @@ type TRenderOpts = {
 }
 function renderEngine({ views = `${Deno.cwd()}/views/` }: TOpts = {}) {
     configure({ views });
-    return (req: Request, res: Response, next: NextFunction) => {
+    return (req: HttpRequest, res: HttpResponse, next: NextFunction) => {
         res.render = async (name: string, params = {}, ...args: any) => {
             let opts = args[args.length - 1] as TRenderOpts || {};
             opts.headers = opts.headers || {};

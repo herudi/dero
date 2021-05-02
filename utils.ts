@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from "./types.ts";
+import { HttpRequest, HttpResponse, NextFunction } from "./types.ts";
 
-export function depError(err: any, req: Request) {
+export function depError(err: any, req: HttpRequest) {
     let status = err.code || err.status || err.statusCode || 500;
     if (typeof status !== 'number') status = 500;
     let stack = err.stack ? err.stack.split('\n') : [""];
@@ -22,7 +22,7 @@ export function findFns(arr: any[]): any[] {
     return ret;
 }
 export function modPath(prefix: string) {
-    return function (req: Request, res: Response, next: NextFunction) {
+    return function (req: HttpRequest, res: HttpResponse, next: NextFunction) {
         req.url = req.url.substring(prefix.length) || '/';
         req.path = req.path ? req.path.substring(prefix.length) || '/' : '/';
         next();
@@ -53,11 +53,6 @@ export function toPathx(path: string | RegExp, isAny: boolean) {
                 let isQuest = obj.indexOf('?') !== -1, isExt = obj.indexOf('.') !== -1;
                 if (isQuest && !isExt) pattern += strRegQ;
                 else pattern += strReg;
-                // if (isExt) {
-                //     let _pattern = pattern;
-                //     _pattern = _pattern.replace(strReg, "");
-                //     pattern = _pattern + (isQuest ? '?/' : '/') + '([\\w-]+' + obj.substring(obj.indexOf('.')) + ")";
-                // }
                 if (isExt) {
                     let _ext = obj.substring(obj.indexOf('.'));
                     let _pattern = pattern + (isQuest ? '?' : '') + '\\' + _ext;
@@ -80,10 +75,15 @@ export function findBase(pathname: string) {
     if (iof !== -1) return pathname.substring(0, iof);
     return pathname;
 }
-export function parseurl(req: Request) {
-    let str: any = req.url, url = req._parsedUrl;
+export function parseurl(req: HttpRequest) {
+    let str: any = req.url,
+        url = req._parsedUrl;
     if (url && url._raw === str) return url;
-    let pathname = str, query = null, search = null, i = 0, len = str.length;
+    let pathname = str,
+        query = null,
+        search = null,
+        i = 0,
+        len = str.length;
     while (i < len) {
         if (str.charCodeAt(i) === 0x3f) {
             pathname = str.substring(0, i);

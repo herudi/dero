@@ -1,11 +1,34 @@
-import { THandler, THandlers, Request, Response, NextFunction, TBody, PondOptions } from "./types.ts";
-import { parseurl, parsequery, depError, findFns, modPath, toPathx } from "./utils.ts";
-import { Server, HTTPOptions, HTTPSOptions, serveTLS, serve } from "./deps.ts";
+import {
+    THandler,
+    THandlers,
+    HttpRequest,
+    HttpResponse,
+    NextFunction,
+    TBody,
+    DeroConfig,
+    PondOptions
+} from "./types.ts";
+import {
+    parseurl,
+    parsequery,
+    depError,
+    findFns,
+    modPath,
+    toPathx
+} from "./utils.ts";
+import {
+    Server,
+    HTTPOptions,
+    HTTPSOptions,
+    serveTLS,
+    serve,
+    readerFromStreamReader
+} from "./deps.ts";
 import Router from "./router.ts";
 
 const JSON_TYPE_CHARSET = "application/json; charset=utf-8";
 
-async function withPromise(handler: Promise<THandler>, req: Request, res: Response, next: NextFunction, isDepError: boolean = false) {
+async function withPromise(handler: Promise<THandler>, req: HttpRequest, _res: HttpResponse, next: NextFunction, isDepError: boolean = false) {
     try {
         let ret = await handler;
         if (ret === void 0) return;
@@ -16,7 +39,7 @@ async function withPromise(handler: Promise<THandler>, req: Request, res: Respon
     }
 }
 
-export function addControllers(controllers: { new(...args: any[]): {} }[]) {
+export function addControllers(controllers: { new(...args: any): {} }[]) {
     let arr = [] as any[];
     if (Array.isArray(controllers)) {
         let i = 0, len = controllers.length;
@@ -27,25 +50,30 @@ export function addControllers(controllers: { new(...args: any[]): {} }[]) {
     }
     return arr;
 }
-
 export class Dero<
-    Req extends Request = Request,
-    Res extends Response = Response
+    Req extends HttpRequest = HttpRequest,
+    Res extends HttpResponse = HttpResponse
     > extends Router<Req, Res> {
-    public parsequery: (query: string) => any;
-    public parseurl: (req: Req) => any;
-    public server: Server | undefined;
+    #parseQuery: (query: string) => any;
+    #parseUrl: (req: Req) => any;
+    #nativeHttp: boolean;
     constructor() {
         super();
-        this.parseurl = parseurl;
-        this.parsequery = parsequery;
-        this.server = undefined;
+        this.#parseUrl = parseurl;
+        this.#nativeHttp = false;
+        this.#parseQuery = parsequery;
+    }
+    config(opts: DeroConfig) {
+        if (opts.useParseUrl) this.#parseUrl = opts.useParseUrl;
+        if (opts.useNativeHttp) this.#nativeHttp = opts.useNativeHttp;
+        if (opts.useParseQuery) this.#parseQuery = opts.useParseQuery;
+        return this;
     }
     #onError = (err: any, req: Req, res: Res, next: NextFunction) => depError(err, req);
     #onNotFound = (req: Req, res: Res, next: NextFunction) => {
         req.pond({
             statusCode: 404,
-            message: `Route ${req.method}${req.url} not found`
+            message: `Route ${req.method}${req.originalUrl} not found`
         }, { status: 404 });
     }
     #addRoutes = (arg: string, args: any[], routes: any[]) => {
@@ -125,7 +153,7 @@ export class Dero<
         return this;
     }
     lookup(req: Req, res = {} as Res) {
-        let url = this.parseurl(req),
+        let url = this.#parseUrl(req),
             obj = this.findRoute(req.method, url.pathname, this.#onNotFound),
             i = 0,
             next: NextFunction = (err?: any) => {
@@ -140,7 +168,7 @@ export class Dero<
                         if (typeof ret.then === 'function') {
                             return withPromise(ret, req, res, next);
                         }
-                        req.pond(ret);
+                        return req.pond(ret);
                     };
                 } else this.#onError(err, req, res, next);
             };
@@ -148,10 +176,10 @@ export class Dero<
         req.originalUrl = req.originalUrl || req.url;
         req.params = obj.params;
         req.path = url.pathname;
-        req.query = this.parsequery(url.search);
+        req.query = this.#parseQuery(url.search);
         req.search = url.search;
-        req.options = obj.opts;
-        req.pond = (body?: TBody | { [k: string]: any }, opts: PondOptions = req.options) => {
+        req.options = obj.opts || {};
+        req.pond = (body?: TBody | { [k: string]: any } | null, opts: PondOptions = req.options) => {
             if (opts.headers) opts.headers = new Headers(opts.headers);
             if (typeof body === 'object') {
                 if (body instanceof Uint8Array || typeof (body as Deno.Reader).read === 'function') {
@@ -165,18 +193,64 @@ export class Dero<
         };
         next();
     }
-    async listen(opts?: number | HTTPSOptions | HTTPOptions | undefined, callback?: (err?: Error) => void | Promise<void>) {
-        if (this.server === void 0 && opts === void 0) {
-            console.log(new Error("listen() ? : Options or port is required"));
-            return;
-        }
+    async listen(opts?:
+        number |
+        HTTPSOptions |
+        HTTPOptions |
+        Deno.ListenOptions |
+        Deno.ListenTlsOptions |
+        undefined, callback?: (err?: Error) => void | Promise<void>) {
         let isTls = false;
         if (typeof opts === 'number') opts = { port: opts };
-        else if (typeof opts === 'object') isTls = (opts as HTTPSOptions).certFile !== void 0;
-        const server = this.server || (isTls ? serveTLS(opts as HTTPSOptions) : serve(opts as HTTPOptions));
+        else if (typeof opts === 'object') isTls = (opts as any).certFile !== void 0;
+        let server = undefined;
+        if (this.#nativeHttp === true) {
+            server = (
+                isTls ?
+                    Deno.listenTls(opts as Deno.ListenTlsOptions & { transport?: "tcp" | undefined; }) :
+                    Deno.listen(opts as Deno.ListenOptions & { transport?: "tcp" | undefined; })
+            ) as Deno.Listener;
+        } else {
+            server = (
+                isTls ? serveTLS(opts as HTTPSOptions) :
+                    serve(opts as HTTPOptions)
+            ) as Server;
+        }
         try {
             if (callback) callback();
-            for await (const req of server) this.lookup(req as unknown as Req);
+            for await (const req of server) {
+                if (this.#nativeHttp === true) {
+                    const httpConn = Deno.serveHttp(req as Deno.Conn);
+                    (async () => {
+                        for await (const { request, respondWith } of httpConn) {
+                            let arr: any = /^(?:\w+\:\/\/)?([^\/]+)(.*)$/.exec(request.url);
+                            let readerBody: Deno.Reader | null = null;
+                            if (request.body) {
+                                readerBody = readerFromStreamReader(request.body.getReader());
+                            }
+                            let resp: (res: Response) => void;
+                            const promise = new Promise<Response>((ok) => {
+                                resp = ok;
+                            });
+                            const rw = respondWith(promise);
+                            let req = {
+                                method: request.method,
+                                url: arr[2],
+                                get body() {
+                                    return readerBody;
+                                },
+                                headers: request.headers,
+                                respond: ({ body, status, headers }: any) => resp!(new Response(body, { status, headers }))
+                            };
+                            this.lookup(req as unknown as Req);
+                            await rw;
+                        }
+                    })();
+                }
+                else {
+                    this.lookup(req as unknown as Req);
+                }
+            }
         } catch (error) {
             if (callback) callback(error);
             if (server.close) server.close();

@@ -1,4 +1,4 @@
-import { THandlers, Request, Response, NextFunction, THandler } from "./types.ts";
+import { THandlers, HttpRequest, HttpResponse, NextFunction, THandler } from "./types.ts";
 import { findFns } from "./utils.ts";
 
 function withMethodDecorator(method: string, path: string = "") {
@@ -23,8 +23,8 @@ export const Connect = (path: string = "") => withMethodDecorator("CONNECT", pat
 export const Patch = (path: string = "") => withMethodDecorator("PATCH", path);
 
 export function Wares<
-    Req extends Request = Request,
-    Res extends Response = Response
+    Req extends HttpRequest = HttpRequest,
+    Res extends HttpResponse = HttpResponse
 >(...handlers: THandlers<Req, Res>) {
     let fns = findFns(handlers);
     return (_: any, __: any, des: PropertyDescriptor) => {
@@ -48,7 +48,7 @@ export function Header(header: { [k: string]: any } | THandler) {
     return (_: any, __: any, des: PropertyDescriptor) => {
         let obj = typeof des.value === "object" ? des.value : { opts: {}, handlers: [des.value] };
         if (typeof header === 'function') {
-            obj.handlers = [(req: Request, res: Response, next: NextFunction) => {
+            obj.handlers = [(req: HttpRequest, res: HttpResponse, next: NextFunction) => {
                 req.options = { ...obj.opts, headers: header(req, res, next) };
                 next();
             }].concat(obj.handlers);

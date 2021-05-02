@@ -1,4 +1,4 @@
-import { Dero, addControllers, Controller, Get, Post, Put, Delete, Wares, Status, Request as DeroRequest, Response, NextFunction } from "./../mod.ts";
+import { Dero, addControllers, Controller, Get, Post, Put, Delete, Wares, Status, HttpRequest, HttpResponse, NextFunction } from "./../mod.ts";
 import { json, urlencoded, ReqWithBody } from 'https://deno.land/x/parsec/mod.ts';
 import vs from "https://deno.land/x/value_schema/mod.ts";
 
@@ -9,7 +9,7 @@ type TItem = {
     brand: string;
 }
 
-type Request = DeroRequest & ReqWithBody;
+type Request = HttpRequest & ReqWithBody;
 
 // in memory db
 let db = [] as TItem[];
@@ -21,7 +21,7 @@ const getIndex = (id: string) => {
 }
 
 const validator = () => {
-    return (req: Request, res: Response, next: NextFunction) => {
+    return (req: Request, res: HttpResponse, next: NextFunction) => {
         const schema = {
             name: vs.string(),
             brand: vs.string(),
@@ -112,7 +112,7 @@ class App extends Dero {
         super();
         this.use(json, urlencoded);
         this.use("/api/v1", addControllers([ItemsController]));
-        this.onError((err: any, req: DeroRequest, res: Response, next: NextFunction) => {
+        this.onError((err, req, res, next) => {
             let status = err.code || err.status || err.statusCode || 500;
             if (typeof status !== 'number') status = 500;
             req.pond({ status, message: err.message }, { status });
@@ -121,7 +121,4 @@ class App extends Dero {
 }
 
 const app = new App();
-await app.listen(3000, (err) => {
-    if (err) console.log(err);
-    console.log("> Running on port 3000");
-})
+await app.listen(3000);

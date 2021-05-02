@@ -7,6 +7,7 @@ Fast micro framework for Deno.
 - No Third Party Modules by default.
 - Robust routing.
 - Routing Controller ready.
+- Support Native HTTP/2 server with [Hyper](https://hyper.rs/) (required Deno 1.9 or higher).
 
 <details>
   <summary>Benchmarks</summary>
@@ -14,7 +15,7 @@ Fast micro framework for Deno.
   The benchmarks try to 1000 route and call http://localhost:3000/hello999.
   Example :
   ```ts
-    import { dero } from "https://deno.land/x/dero@0.1.2/mod.ts";
+    import { dero } from "https://deno.land/x/dero@0.1.3/mod.ts";
 
     for (let i = 0; i < 1000; i++) {
         dero.get('/hello' + i, (req) => {
@@ -28,7 +29,18 @@ Fast micro framework for Deno.
     wrk -t4 -c4 -d10s http://localhost:3000/hello999
   ```
   
-  ### Dero
+  ### Dero (native http)
+  ```bash
+    Running 10s test @ http://localhost:3000/hello999
+    4 threads and 4 connections
+    Thread Stats   Avg      Stdev     Max   +/- Stdev
+        Latency    2.73ms   686.31us  12.67ms   83.95%
+        Req/Sec    366.39   18.15     404.00    75.75%
+    14611 requests in 10.02s, 1.83MB read
+    Requests/sec:   1458.55
+    Transfer/sec:   186.59KB
+  ```
+  ### Dero (std/http)
   ```bash
     Running 10s test @ http://localhost:3000/hello999
     4 threads and 4 connections
@@ -46,7 +58,7 @@ Fast micro framework for Deno.
     Thread Stats   Avg      Stdev     Max   +/- Stdev
         Latency    4.76ms    1.16ms  23.79ms   80.17%
         Req/Sec    210.51    22.25   262.00    81.00%
-    8398 requests in 10.02s, 779.11KB read
+    8398 requests in 10.02s, 664.11KB read
     Requests/sec:    837.86
     Transfer/sec:    77.73KB
   ```
@@ -76,14 +88,11 @@ Fast micro framework for Deno.
 
 ## Usage
 ```ts
-import { dero } from "https://deno.land/x/dero@0.1.2/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.1.3/mod.ts";
 
-// METHODS => GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, ANY, TRACE, CONNECT.
-dero.get("/hello", (req) => {
-    req.pond(`Hello Dero`);
-    // or
-    // return `Hello Dero`;
-});
+dero
+    .get("/hello", _ => "Hello Dero")
+    .get("/hello/:name", (req) => req.params.name);
 
 await dero.listen(3000);
 ```
@@ -91,40 +100,57 @@ await dero.listen(3000);
 ```bash
 deno run --allow-net yourfile.ts
 ```
+## Usage With Native Http (Hyper)
+> note: need Deno version 1.9 or higher.
+```ts
+import { dero } from "https://deno.land/x/dero@0.1.3/mod.ts";
 
-## Routing Controller
-Decorator => <br>
+dero
+    .config({ useNativeHttp: true })
+    .get("/hello", _ => "Hello Dero")
+    .get("/hello/:name", (req) => req.params.name);
+
+await dero.listen(3000);
+```
+## Run Deno
+```bash
+deno run --allow-net --unstable yourfile.ts
+```
+>  // METHODS => GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, ANY, TRACE, CONNECT.
+
+## Routing Controller (Decorator)
 @Controller(path?: string)<br>
 @Wares(...middlewareFunction)<br>
-@[METHODS](path?: string) // METHODS => GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, ANY, TRACE, CONNECT.<br>
+@[METHODS](path?: string)<br>
 @Status(code: number)<br>
 @Header(object)<br>
-
 ```ts
-import { dero, Controller, Get, Post, Wares, addControllers, Status, Header } from "https://deno.land/x/dero@0.1.2/mod.ts";
+import { dero, Controller, Get, Post, Wares, addControllers, Status, Header } from "https://deno.land/x/dero@0.1.3/mod.ts";
 
-@Controller()
+@Controller("/user")
 class UserController {
-    @Get("/user")
+    @Get()
     findAll() {
-        return `Hello from controller user`;
+        return { username: 'jhon' };
     }
 
+    // middleware
     @Wares((req, res, next) => {
         req.foo = "foo";
         next();
     })
     @Get("/user/:id")
     findById(req: Request) {
-        return `Hello user ${req.params.id} ${req.foo}`;
+        return { 
+            foo: req.foo,
+            id: req.params.id
+        };
     }
 
     @Status(201)
     @Post("/user")
     save() {
         return "Created";
-        // or
-        // req.pond("created", { status: 201 })
     }
 
     @Header({ "Content-Type": "text/css" })
@@ -142,9 +168,11 @@ await dero.listen(3000);
 ```ts
 ...
 // this code is example
-dero.parseurl = parseurl.parse;
-dero.parsequery = qs.parse;
-dero.server = serve({ port: 9999 });
+dero.config({
+    useNativeHttp: boolean,                 /* default false */
+    useParseUrl: (req: HttpRequest) => any, /* default native */
+    useParseQuery: (qs: string) => any,     /* default native */
+});
 dero.get("/hello", (req) => {
     req.pond(`Hello Dero`);
 });
@@ -153,7 +181,7 @@ dero.get("/hello", (req) => {
 
 ## Middleware
 ```ts
-import { dero } from "https://deno.land/x/dero@0.1.2/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.1.3/mod.ts";
 
 dero.use((req, res, next) => {
     req.foo = "foo";
@@ -176,7 +204,7 @@ await dero.listen(3000);
 ```
 ## Sub Router
 ```ts
-import { dero, Router } from "https://deno.land/x/dero@0.1.2/mod.ts";
+import { dero, Router } from "https://deno.land/x/dero@0.1.3/mod.ts";
 
 const router = new Router();
 router.get("/hello", (req) => {
@@ -251,7 +279,7 @@ req._parsedUrl
 Response is an object transfer data from middleware like res.locals or other.
 ## Next
 Next is a function to next step handler.
-## listen(opts?: number | HTTPSOptions | HTTPOptions, callback?: (err?: Error) => void);
+## listen(opts?: number | object, callback?: (err?: Error) => void);
 ```ts
     await dero.listen(3000);
     // or

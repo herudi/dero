@@ -1,9 +1,9 @@
-import { THandler, THandlers, Request, Response } from "./types.ts";
+import { THandler, THandlers, HttpRequest, HttpResponse } from "./types.ts";
 import { findBase } from "./utils.ts";
 
 export default class Router<
-    Req extends Request = Request,
-    Res extends Response = Response
+    Req extends HttpRequest = HttpRequest,
+    Res extends HttpResponse = HttpResponse
     > {
     route: Record<string, any> = {};
     c_routes: Record<string, any>[] = [];
