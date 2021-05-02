@@ -220,7 +220,7 @@ export class Dero<
             if (callback) callback();
             for await (const req of server) {
                 if (this.#nativeHttp === true) {
-                    const httpConn = Deno.serveHttp(req as Deno.Conn);
+                    const httpConn = (Deno as any).serveHttp(req as Deno.Conn);
                     (async () => {
                         for await (const { request, respondWith } of httpConn) {
                             let arr: any = /^(?:\w+\:\/\/)?([^\/]+)(.*)$/.exec(request.url);
