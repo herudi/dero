@@ -1,5 +1,5 @@
 ## Dero
-Fast micro framework for Deno.
+Fast micro framework for Deno (support native HTTP/2 Hyper and std/http).
 
 ## Features
 - Fast (try to 1000+ route, your app still fast).
@@ -15,7 +15,7 @@ Fast micro framework for Deno.
   The benchmarks try to 1000 route and call http://localhost:3000/hello999.
   Example :
   ```ts
-    import { dero } from "https://deno.land/x/dero@0.1.4/mod.ts";
+    import { dero } from "https://deno.land/x/dero@0.1.5/mod.ts";
 
     for (let i = 0; i < 1000; i++) {
         dero.get('/hello' + i, (req) => {
@@ -88,7 +88,7 @@ Fast micro framework for Deno.
 
 ## Usage
 ```ts
-import { dero } from "https://deno.land/x/dero@0.1.4/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.1.5/mod.ts";
 
 dero
     .get("/hello", _ => "Hello Dero")
@@ -103,7 +103,7 @@ deno run --allow-net yourfile.ts
 ## Usage With Native Http (Hyper)
 > note: need Deno version 1.9 or higher.
 ```ts
-import { dero } from "https://deno.land/x/dero@0.1.4/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.1.5/mod.ts";
 
 dero
     .config({ useNativeHttp: true })
@@ -125,7 +125,7 @@ deno run --allow-net --unstable yourfile.ts
 @Status(code: number)<br>
 @Header(object)<br>
 ```ts
-import { dero, Controller, Get, Post, Wares, addControllers, Status, Header } from "https://deno.land/x/dero@0.1.4/mod.ts";
+import { dero, Controller, Get, Post, Wares, addControllers, Status, Header } from "https://deno.land/x/dero@0.1.5/mod.ts";
 
 @Controller("/user")
 class UserController {
@@ -181,7 +181,7 @@ dero.get("/hello", (req) => {
 
 ## Middleware
 ```ts
-import { dero } from "https://deno.land/x/dero@0.1.4/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.1.5/mod.ts";
 
 dero.use((req, res, next) => {
     req.foo = "foo";
@@ -204,7 +204,7 @@ await dero.listen(3000);
 ```
 ## Sub Router
 ```ts
-import { dero, Router } from "https://deno.land/x/dero@0.1.4/mod.ts";
+import { dero, Router } from "https://deno.land/x/dero@0.1.5/mod.ts";
 
 const router = new Router();
 router.get("/hello", (req) => {

@@ -3,8 +3,8 @@ export { json, urlencoded } from 'https://deno.land/x/parsec/mod.ts';
 export type { ReqWithBody } from 'https://deno.land/x/parsec/mod.ts';
 
 // dero
-export { Get, Wares, Post, Put, Delete, Controller, addControllers, Dero } from "https://deno.land/x/dero@0.1.4/mod.ts";
-export type { HttpRequest, HttpResponse, NextFunction } from "https://deno.land/x/dero@0.1.4/mod.ts";
+export { Get, Wares, Post, Put, Delete, Controller, addControllers, Dero } from "https://deno.land/x/dero@0.1.5/mod.ts";
+export type { HttpRequest, HttpResponse, NextFunction } from "https://deno.land/x/dero@0.1.5/mod.ts";
 
 // for validator
 export { default as vs } from "https://deno.land/x/value_schema/mod.ts";
