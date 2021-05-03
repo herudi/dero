@@ -1,9 +1,10 @@
-
 export type TBody = Uint8Array | Deno.Reader | string;
 export type NextFunction = (err?: any) => void;
 export interface HttpRequest {
     respond: (r: any) => Promise<void>;
     url: string;
+    conn: Deno.Conn;
+    isHttps: boolean | undefined;
     method: string;
     headers: Headers;
     body: Deno.Reader | null;

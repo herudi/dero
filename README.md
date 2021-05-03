@@ -15,7 +15,7 @@ Fast micro framework for Deno (support native HTTP/2 Hyper and std/http).
   The benchmarks try to 1000 route and call http://localhost:3000/hello999.
   Example :
   ```ts
-    import { dero } from "https://deno.land/x/dero@0.1.5/mod.ts";
+    import { dero } from "https://deno.land/x/dero@0.1.6/mod.ts";
 
     for (let i = 0; i < 1000; i++) {
         dero.get('/hello' + i, (req) => {
@@ -88,7 +88,7 @@ Fast micro framework for Deno (support native HTTP/2 Hyper and std/http).
 
 ## Usage
 ```ts
-import { dero } from "https://deno.land/x/dero@0.1.5/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.1.6/mod.ts";
 
 dero
     .get("/hello", _ => "Hello Dero")
@@ -103,7 +103,7 @@ deno run --allow-net yourfile.ts
 ## Usage With Native Http (Hyper)
 > note: need Deno version 1.9 or higher.
 ```ts
-import { dero } from "https://deno.land/x/dero@0.1.5/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.1.6/mod.ts";
 
 dero
     .config({ useNativeHttp: true })
@@ -125,7 +125,7 @@ deno run --allow-net --unstable yourfile.ts
 @Status(code: number)<br>
 @Header(object)<br>
 ```ts
-import { dero, Controller, Get, Post, Wares, addControllers, Status, Header } from "https://deno.land/x/dero@0.1.5/mod.ts";
+import { dero, Controller, Get, Post, Wares, addControllers, Status, Header } from "https://deno.land/x/dero@0.1.6/mod.ts";
 
 @Controller("/user")
 class UserController {
@@ -181,7 +181,7 @@ dero.get("/hello", (req) => {
 
 ## Middleware
 ```ts
-import { dero } from "https://deno.land/x/dero@0.1.5/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.1.6/mod.ts";
 
 dero.use((req, res, next) => {
     req.foo = "foo";
@@ -204,7 +204,7 @@ await dero.listen(3000);
 ```
 ## Sub Router
 ```ts
-import { dero, Router } from "https://deno.land/x/dero@0.1.5/mod.ts";
+import { dero, Router } from "https://deno.land/x/dero@0.1.6/mod.ts";
 
 const router = new Router();
 router.get("/hello", (req) => {
@@ -254,19 +254,19 @@ dero.get("/sendFile", async (req) => {
 ```
 
 ## Req
-Request by default from ServerRequest Deno.
-### more request
+Http Request 
+### example request
 ```ts
 // req.options is a options response for req.pond.
 req.options = { status: 200, headers: object_headers };
 
-// query => /path?name=john
+// query => /path?name=john to { "name": "john" }
 req.query
 
-// params => /path/:name/:date
-// params => /path/:name/:date?
-// params => /path/:image.(png|jpg)
-// params => /path/*
+// standart params => /path/:name/:date
+// optional params => /path/:name/:date?
+// filtered params => /path/:image.(png|jpg)
+// all params      => /path/*
 req.params
 
 // other
@@ -276,10 +276,10 @@ req._parsedUrl
 // and more
 ```
 ## Res
-Response is an object transfer data from middleware like res.locals or other.
+Http Response is an object transfer data from middleware like res.locals or other.
 ## Next
-Next is a function to next step handler.
-## listen(opts?: number | object, callback?: (err?: Error) => void);
+Next Function is a function to next step handler.
+## listen(opts: number | object, callback?: (err?: Error) => void);
 ```ts
     await dero.listen(3000);
     // or
@@ -292,10 +292,16 @@ Next is a function to next step handler.
     await dero.listen({ port: 3000, hostname: 'localhost' }, cb);
     // or https
     await dero.listen({ 
-        hostname: "localhost",
         port: 443,
         certFile: "./path/to/localhost.crt",
         keyFile: "./path/to/localhost.key",
+    }, cb);
+    // or http/2 need deno 1.9.0 or higher
+    await dero.listen({ 
+        port: 443,
+        certFile: "./path/to/localhost.crt",
+        keyFile: "./path/to/localhost.key",
+        alpnProtocols: ["h2", "http/1.1"]
     }, cb);
 ```
 ## onError & onNotFound

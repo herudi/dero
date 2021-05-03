@@ -18,8 +18,6 @@ import {
 } from "./utils.ts";
 import {
     Server,
-    HTTPOptions,
-    HTTPSOptions,
     serveTLS,
     serve,
     readerFromStreamReader
@@ -193,67 +191,76 @@ export class Dero<
         };
         next();
     }
-    async listen(opts?:
-        number |
-        HTTPSOptions |
-        HTTPOptions |
-        Deno.ListenOptions |
-        Deno.ListenTlsOptions |
-        undefined, callback?: (err?: Error) => void | Promise<void>) {
+    async listen(
+        opts:
+            number |
+            Deno.ListenOptions |
+            Deno.ListenTlsOptions |
+            { [k: string]: any },
+        callback?: (err?: Error) => void | Promise<void>
+    ) {
         let isTls = false;
         if (typeof opts === 'number') opts = { port: opts };
         else if (typeof opts === 'object') isTls = (opts as any).certFile !== void 0;
         let server = undefined;
-        if (this.#nativeHttp === true) {
+        let isNative = this.#nativeHttp === true && (Deno as any).serveHttp;
+        if (isNative) {
             server = (
                 isTls ?
-                    Deno.listenTls(opts as Deno.ListenTlsOptions & { transport?: "tcp" | undefined; }) :
+                    Deno.listenTls(opts as Deno.ListenTlsOptions) :
                     Deno.listen(opts as Deno.ListenOptions & { transport?: "tcp" | undefined; })
             ) as Deno.Listener;
         } else {
             server = (
-                isTls ? serveTLS(opts as HTTPSOptions) :
-                    serve(opts as HTTPOptions)
+                isTls ? serveTLS(opts as Deno.ListenTlsOptions) :
+                    serve(opts as Deno.ListenOptions)
             ) as Server;
         }
         try {
             if (callback) callback();
-            for await (const req of server) {
-                if (this.#nativeHttp === true) {
-                    const httpConn = (Deno as any).serveHttp(req as Deno.Conn);
+            if (isNative) {
+                for await (const conn of server) {
+                    const httpConn = Deno.serveHttp(conn as Deno.Conn);
                     (async () => {
-                        for await (const { request, respondWith } of httpConn) {
-                            let arr: any = /^(?:\w+\:\/\/)?([^\/]+)(.*)$/.exec(request.url);
-                            let readerBody: Deno.Reader | null = null;
-                            if (request.body) {
-                                readerBody = readerFromStreamReader(request.body.getReader());
+                        try {
+                            for await (const { request, respondWith } of httpConn) {
+                                let arr: any = /^(?:\w+\:\/\/)?([^\/]+)(.*)$/.exec(request.url);
+                                let readerBody: Deno.Reader | null = null;
+                                if (request.body) {
+                                    readerBody = readerFromStreamReader(request.body.getReader());
+                                }
+                                let resp: (res: Response) => void;
+                                const promise = new Promise<Response>((ok) => {
+                                    resp = ok;
+                                });
+                                const rw = respondWith(promise);
+                                let req = {
+                                    conn,
+                                    isHttps: isTls,
+                                    method: request.method,
+                                    url: arr[2],
+                                    body: readerBody,
+                                    headers: request.headers,
+                                    respond: ({ body, status, headers }: any) => resp!(new Response(body, { status, headers }))
+                                };
+                                this.lookup(req as unknown as Req);
+                                await rw;
                             }
-                            let resp: (res: Response) => void;
-                            const promise = new Promise<Response>((ok) => {
-                                resp = ok;
-                            });
-                            const rw = respondWith(promise);
-                            let req = {
-                                method: request.method,
-                                url: arr[2],
-                                get body() {
-                                    return readerBody;
-                                },
-                                headers: request.headers,
-                                respond: ({ body, status, headers }: any) => resp!(new Response(body, { status, headers }))
-                            };
-                            this.lookup(req as unknown as Req);
-                            await rw;
-                        }
+                        } catch (error) { }
                     })();
                 }
-                else {
+            } else {
+                if (this.#nativeHttp === true) console.log('%o', "will force to std/http");
+                for await (const req of server) {
+                    (req as any).isHttps = isTls;
                     this.lookup(req as unknown as Req);
                 }
             }
         } catch (error) {
             if (callback) callback(error);
-            if (server.close) server.close();
+            if (server.close) {
+                try { server.close(); } catch (e) { }
+            }
         }
     }
 }
