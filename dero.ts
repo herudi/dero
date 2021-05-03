@@ -220,7 +220,7 @@ export class Dero<
             if (callback) callback();
             if (isNative) {
                 for await (const conn of server) {
-                    const httpConn = Deno.serveHttp(conn as Deno.Conn);
+                    const httpConn = (Deno as any).serveHttp(conn as Deno.Conn);
                     (async () => {
                         try {
                             for await (const { request, respondWith } of httpConn) {
