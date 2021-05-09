@@ -1,7 +1,6 @@
 import { 
     Dero, 
     Controller, 
-    addControllers, 
     Get, 
     HttpRequest, 
     HttpResponse, 
@@ -39,12 +38,11 @@ class App extends Dero {
     constructor() {
         super();
         // add sub router / controller
-        this.use(
-            this.authenticate(),
-            addControllers([UserController, ItemsController])
-        );
-
-        this.onError((err: any, req: HttpRequest, res: HttpResponse, next: NextFunction) => {
+        this.use({
+            wares: [this.authenticate()],
+            class: [UserController, ItemsController]
+        });
+        this.use((err: any, req: HttpRequest, res: HttpResponse, next: NextFunction) => {
             let status = err.code || err.status || err.statusCode || 500;
             if (typeof status !== 'number') status = 500;
             req.options = { status };
@@ -63,7 +61,7 @@ class App extends Dero {
 }
 
 const app = new App();
-await app.listen(3000, (err) => {
+await app.listen(3000, (err, opts) => {
     if (err) console.log(err);
-    console.log("> Running on port 3000");
+    console.log("> Running on port " + opts?.port);
 });

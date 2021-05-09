@@ -17,7 +17,9 @@ function renderEngine({ views = `${Deno.cwd()}/views/` }: TOpts = {}) {
             let opts = args[args.length - 1] as TRenderOpts || {};
             opts.headers = opts.headers || {};
             opts.headers["Content-Type"] = "text/html";
-            req.pond(await renderFile(name, params, ...args), opts);
+            res.status(opts.status || 200)
+                .header(opts.headers)
+                .body(await renderFile(name, params, ...args));
         }
         next();
     }

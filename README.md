@@ -4,8 +4,6 @@ Fast micro framework for Deno (support native HTTP/2 Hyper and std/http).
 ## Features
 - Fast (try to 1000+ route, your app still fast).
 - Easy to use (inspired by [expressjs](https://github.com/expressjs/express) middleware (req, res, next)).
-- No Third Party Modules by default.
-- Robust routing.
 - Routing Controller ready.
 - Support Native HTTP/2 server with [Hyper](https://hyper.rs/) (required Deno 1.9 or higher).
 
@@ -15,11 +13,11 @@ Fast micro framework for Deno (support native HTTP/2 Hyper and std/http).
   The benchmarks try to 1000 route and call http://localhost:3000/hello999.
   Example :
   ```ts
-    import { dero } from "https://deno.land/x/dero@0.1.6/mod.ts";
+    import { dero } from "https://deno.land/x/dero@0.2.0/mod.ts";
 
     for (let i = 0; i < 1000; i++) {
-        dero.get('/hello' + i, (req) => {
-            req.pond('hello route ' + i);
+        dero.get('/hello' + i, (req, res) => {
+            res.body('hello route ' + i);
         });
     }
 
@@ -88,177 +86,193 @@ Fast micro framework for Deno (support native HTTP/2 Hyper and std/http).
 
 ## Usage
 ```ts
-import { dero } from "https://deno.land/x/dero@0.1.6/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.2.0/mod.ts";
+// or
+// import { dero } from "https://x.nest.land/dero@0.2.0/mod.ts";
 
 dero
-    .get("/hello", _ => "Hello Dero")
-    .get("/hello/:name", (req) => req.params.name);
+    .get("/hello", (req, res) => {
+        res.body("hello");
+    })
+    // or
+    .get("/hello-dero", (req, res) => {
+        res.header({ "x-powered-by": "anything" })
+            .status(201)
+            .body("with header and status");
+    });
+
+await dero.listen(3000);
+```
+
+## Usage With Routing Controller
+```ts
+import { dero, Controller, Get, Status, Header, HttpRequest } from "https://deno.land/x/dero@0.2.0/mod.ts";
+
+@Controller("/hello")
+class HelloController {
+
+    @Get()
+    hello() {
+        return "hello";
+    }
+
+    @Header({ "x-powered-by": "anything" })
+    @Status(201)
+    @Get("-dero")
+    helloDero() {
+        return "with header and status";
+    }
+}
+
+dero.use({
+    class: [HelloController]
+});
+
+// or
+// dero.use({
+//     prefix: "/api/v1",
+//     wares: [midd1, midd2],
+//     class: [HelloController]
+// });
 
 await dero.listen(3000);
 ```
 ## Run
 ```bash
 deno run --allow-net yourfile.ts
-```
-## Usage With Native Http (Hyper)
-> note: need Deno version 1.9 or higher.
-```ts
-import { dero } from "https://deno.land/x/dero@0.1.6/mod.ts";
-
-dero
-    .config({ useNativeHttp: true })
-    .get("/hello", _ => "Hello Dero")
-    .get("/hello/:name", (req) => req.params.name);
-
-await dero.listen(3000);
-```
-## Run
-```bash
+// or support native http (use --unstable flag)
 deno run --allow-net --unstable yourfile.ts
 ```
->  // METHODS => GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, ANY, TRACE, CONNECT.
-
-## Routing Controller (Decorator)
-@Controller(path?: string)<br>
-@Wares(...middlewareFunction)<br>
-@[METHODS](path?: string)<br>
-@Status(code: number)<br>
-@Header(object)<br>
+## Decorator
+### Controller Decorator
+Controller decorator @Controller(path?: string).
 ```ts
-import { dero, Controller, Get, Post, Wares, addControllers, Status, Header } from "https://deno.land/x/dero@0.1.6/mod.ts";
+...
+@Controller("/hello")
+class HelloController { }
+...
+```
+### Method Decorator
+Method decorator like @Get(path?: string).
+>  // METHODS => GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, ANY, TRACE, CONNECT.
+```ts
+...
+@Controller("/hello")
+class HelloController {
 
-@Controller("/user")
-class UserController {
     @Get()
-    findAll() {
-        return { username: 'jhon' };
+    hello() {
+        return "hello";
+    }
+}
+...
+```
+### Status Decorator
+Set status on decorator like @Status(code: number).
+```ts
+...
+@Controller("/hello")
+class HelloController {
+
+    @Status(201)
+    @Post()
+    save() {
+        return "Created";
+    }
+}
+...
+```
+### Header Decorator
+Set header on decorator @Header(object | fn).
+```ts
+...
+@Controller("/hello")
+class HelloController {
+
+    @Header({
+        "Content-Type": "text/html"
+    })
+    @Get()
+    hello() {
+        return "<h1>Hello</h1>";
     }
 
-    // middleware
+    @Header((req, res) => {
+        let type = req.url.includes(".css") ? "text/css" : "text/plain";
+        return { "Content-Type": type };
+    })
+    @Get()
+    hello() {
+        return Deno.readFile(yourpath);
+    }
+}
+...
+```
+### Middlewares Decorator
+Set Middlewares on decorator @Wares(mid1, mid2, mid3).
+```ts
+...
+@Controller("/hello")
+class HelloController {
+
+    // @Wares(mid1, mid2, mid3)
+    // or
+    // @Wares([mid1, mid2, mid3])
     @Wares((req, res, next) => {
         req.foo = "foo";
         next();
     })
-    @Get("/user/:id")
-    findById(req: Request) {
-        return { 
-            foo: req.foo,
-            id: req.params.id
-        };
-    }
-
-    @Status(201)
-    @Post("/user")
-    save() {
-        return "Created";
-    }
-
-    @Header({ "Content-Type": "text/css" })
-    @Get("/sendFile")
-    sendFile() {
-        return Deno.readFile("./public/style.css");
+    @Get()
+    hello(req: HttpRequest) {
+        return req.foo;
     }
 }
-
-dero.use("/api/v1", addControllers([UserController]));
-
-await dero.listen(3000);
+...
 ```
+
 ## Config (if you want)
 ```ts
 ...
 // this code is example
 dero.config({
-    useNativeHttp: boolean,                 /* default false */
+    useNativeHttp: boolean,                 /* default true */
     useParseUrl: (req: HttpRequest) => any, /* default native */
     useParseQuery: (qs: string) => any,     /* default native */
-});
-dero.get("/hello", (req) => {
-    req.pond(`Hello Dero`);
 });
 ...
 ```
 
 ## Middleware
 ```ts
-import { dero } from "https://deno.land/x/dero@0.1.6/mod.ts";
+import { dero, Controller, Get, Wares } from "https://deno.land/x/dero@0.2.0/mod.ts";
 
-dero.use((req, res, next) => {
-    req.foo = "foo";
-    next();
-});
+@Controller("/hello")
+class HelloController {
 
-dero.get("/hello", 
-    (req, res, next) => {
-        res.locals = {
-            username: "dero"
-        };
+    // inside handlers use @Wares
+    @Wares((req, res, next) => {
+        req.foo = "foo";
         next();
-    }, 
-    (req, res) => {
-        req.pond(`Hello ${req.foo} ${res.locals?.username}`);
+    })
+    @Get()
+    hello() {
+        return "hello";
     }
-);
+}
+// global middleware with dero.use(...middlewares)
+dero.use(midd1, midd2);
+
+dero.use({
+    // the middleware available only HelloController
+    wares: [midd1, midd2]
+    class: [HelloController]
+});
 
 await dero.listen(3000);
 ```
-## Sub Router
+## HttpRequest
+### example HttpRequest
 ```ts
-import { dero, Router } from "https://deno.land/x/dero@0.1.6/mod.ts";
-
-const router = new Router();
-router.get("/hello", (req) => {
-    req.pond(`Hello from sub router`);
-});
-
-dero.use("/api/v1", router);
-
-await dero.listen(3000);
-```
-
-## req.pond(body?, opts?)
-Comparison req.pond and req.respond.
-```ts
-// this is req.respond
-req.respond({ body, status, headers });
-// where body is string | Uint8Array | Deno.Reader | undefined
-
-// this is req.pond
-req.pond(body, { status, headers });
-// where body is string | json | Uint8Array | Deno.Reader | undefined
-```
-## Example using req.pond
-```ts
-...
-dero.get("/html", (req) => {
-    const headers = {"Content-Type": "text/html"};
-    req.pond("<h1>Hello from html</h1>", { status: 200, headers });
-});
-dero.get("/json", (req) => {
-    req.pond({ name: "Dero" });
-});
-dero.get("/download", async (req) => {
-    const headers = {"Content-disposition": "attachment; filename=style.css"};
-    req.pond(
-        await Deno.readFile(`${Deno.cwd()}/public/style.css`), 
-        { headers }
-    );
-})
-
-//if using return example sendFile css
-dero.get("/sendFile", async (req) => {
-    req.options = { headers: {"Content-Type": "text/css"} };
-    return Deno.readFile(`${Deno.cwd()}/public/style.css`);
-})
-...
-```
-
-## Req
-Http Request 
-### example request
-```ts
-// req.options is a options response for req.pond.
-req.options = { status: 200, headers: object_headers };
 
 // query => /path?name=john to { "name": "john" }
 req.query
@@ -269,23 +283,74 @@ req.query
 // all params      => /path/*
 req.params
 
-// other
-req.originalUrl
-req.search
-req._parsedUrl
-// and more
+interface HttpRequest {
+    // req.respond({body, status, headers});
+    respond: (r: any) => Promise<void>;
+
+    // req.pond(body, {status, headers});
+    pond: (body?: TBody | { [k: string]: any } | null, opts?: PondOptions) => Promise<void>;
+    proto: string;
+    url: string;
+    conn: Deno.Conn;
+    isHttps: boolean | undefined;
+    method: string;
+    headers: Headers;
+    body: Deno.Reader | null;
+    originalUrl: string;
+    params: { [k: string]: any };
+    _parsedUrl: { [k: string]: any };
+    path: string;
+    query: { [k: string]: any };
+    search: string | null;
+};
 ```
-## Res
-Http Response is an object transfer data from middleware like res.locals or other.
+## HttpResponse
+### example HttpResponse 
+```ts
+...
+.get("/hello", (req, res) => {
+    res.body("hello");
+})
+...
+interface HttpResponse {
+
+    // set header     : res.header({"x-powered-by": "anything"}).body("Hello");
+    // get header     : const xPowered = res.header("x-powered-by");
+    // get header all : const allHeader = res.header();
+    // remove header  : res.header().delete("x-powered-by");
+    header: (value?: { [k: string]: any } | string) => this;
+
+    // set status : res.status(201).body("Hello");
+    // get status : const status = res.status();
+    status: (code?: number) => this;
+
+    // string : res.body("hello");
+    // json   : res.body({ name: "hello" });
+    // file   : res.body(await Deno.readFile(`${Deno.cwd()}/public/style.css`));
+    body: (body?: TBody | { [k: string]: any } | null) => Promise<void>;
+};
+...
+```
 ## Next
-Next Function is a function to next step handler.
-## listen(opts: number | object, callback?: (err?: Error) => void);
+Next Function is a function to next step handler (on middleware).
+### example next 
+```ts
+...
+.use((req, res, next) => {
+   res.locals = {
+       username: "dero"
+   }
+   next();
+})
+...
+```
+## listen(opts: number | object, callback?: (err?: Error, opts?: object) => void);
 ```ts
     await dero.listen(3000);
     // or
-    const cb = (err) => {
+    const cb = (err, opts) => {
         if (err) console.log(err);
-        console.log("Running on server");
+        console.log("Running on server " + opts?.port);
     }
     await dero.listen(3000, cb);
     // or
@@ -304,36 +369,26 @@ Next Function is a function to next step handler.
         alpnProtocols: ["h2", "http/1.1"]
     }, cb);
 ```
-## onError & onNotFound
-Simple error handling.
+## Simple error handling.
 ```ts
-    ...
-    dero.onError((err, req, res, next) => {
-        req.pond({ message: err.message }, { status: err.code });
-    });
-    dero.onNotFound((req, res, next) => {
-        req.pond({ message: `Url ${req.url} not found` }, { status: 404 });
-    });
-    ...
+...
+// error handling
+dero.use((err: any, req: HttpRequest, res: HttpResponse, next: NextFunction) => {
+    res.status(err.code || 500).body({ message: err.message });
+});
+
+// not found error handling
+dero.use("*", (req, res, next) => {
+    res.status(404).body({ message: `Url ${req.url} not found` });
+});
+...
 ```
 ## The role of dero.use
 ```ts
-// prefix string and array router
-use(prefix: string, routers: Router[]): this;
-// prefix string and single router
-use(prefix: string, router: Router): this;
-// single router
-use(router: Router): this;
-// array router
-use(router: Router[]): this;
-// middleware and array router
-use(middleware: THandler, routers: Router[]): this;
-// middleware and single router
-use(middleware: THandler, router: Router): this;
-// spread array middleware 
+// controllers object { class: Array, prefix?: string, wares?: Array }
+use(controllers: DeroControllers): this;
+// spread array middlewares 
 use(...middlewares: Array<THandler | THandler[]>): this;
-// prefix string and middleware (for serve static here)
-use(prefix: string, middleware: THandler): this;
 // prefix string spread array middleware (for serve static here)
 use(prefix: string, ...middlewares: Array<THandler | THandler[]>): this;
 ```

@@ -2,9 +2,9 @@ import { dero, ReactDOMServer, React } from "./deps.ts";
 import App from "./app.tsx";
 
 const js =
-`import React from "https://jspm.dev/react@17.0.2";
+    `import React from "https://jspm.dev/react@17.0.2";
  import ReactDOM from "https://jspm.dev/react-dom@17.0.2";
- ReactDOM.hydrate(React.createElement(${App}), document.getElementById('root'));`;  
+ ReactDOM.hydrate(React.createElement(${App}), document.getElementById('root'));`;
 
 const browserPath = "/browser.js";
 const html =
@@ -18,14 +18,12 @@ const html =
         </body>
     </html>`;
 
-dero.get(browserPath, (req) => {
-    const headers = {"Content-Type": "application/javascript"};
-    req.pond(js, { headers });
+dero.get(browserPath, (req, res) => {
+    res.header({ "Content-Type": "application/javascript" }).body(js);
 });
 
 dero.get("/", (req, res, next) => {
-    const headers = {"Content-Type": "text/html"};
-    req.pond(html, { headers });
+    res.header({ "Content-Type": "text/html" }).body(html);
 });
 
 await dero.listen(3000);

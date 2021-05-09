@@ -1,4 +1,4 @@
-import { Dero, addControllers, Controller, Get, Post, Put, Delete, Wares, Status, HttpRequest, HttpResponse, NextFunction } from "./../mod.ts";
+import { Dero, Controller, Get, Post, Put, Delete, Wares, Status, HttpRequest, HttpResponse, NextFunction } from "./../mod.ts";
 import { json, urlencoded, ReqWithBody } from 'https://deno.land/x/parsec/mod.ts';
 import vs from "https://deno.land/x/value_schema/mod.ts";
 
@@ -28,7 +28,7 @@ const validator = () => {
             price: vs.number()
         }
         let message: any;
-        vs.applySchemaObject(schema, req.parsedBody, (err) => {
+        vs.applySchemaObject(schema, req.parsedBody, (err: any) => {
             const key = err.keyStack.shift();
             if (key) {
                 if (message === undefined) message = {};
@@ -111,14 +111,16 @@ class App extends Dero {
     constructor() {
         super();
         this.use(json, urlencoded);
-        this.use("/api/v1", addControllers([ItemsController]));
-        this.onError((err, req, res, next) => {
-            let status = err.code || err.status || err.statusCode || 500;
-            if (typeof status !== 'number') status = 500;
-            req.pond({ status, message: err.message }, { status });
+        this.use({
+            prefix: '/api/v1',
+            class: [ItemsController]
+        });
+        this.use((err: any, req: HttpRequest, res: HttpResponse, next: NextFunction) => {
+            let code = err.code || err.status || err.statusCode || 500;
+            if (typeof code !== 'number') code = 500;
+            res.status(code).body({ statusCode: code, message: err.message });
         });
     }
 }
 
-const app = new App();
-await app.listen(3000);
+await new App().listen(3000);

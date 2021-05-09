@@ -4,9 +4,9 @@ import { findFns } from "./utils.ts";
 function withMethodDecorator(method: string, path: string = "") {
     return (_: any, __: any, des: PropertyDescriptor) => {
         if (typeof des.value === "object") {
-            des.value = { method, path, handlers: des.value?.handlers, opts: des.value?.opts };
-        }else{
-            des.value = { method, path, handlers: [des.value], opts: {} };
+            des.value = { method, path, handlers: des.value?.handlers };
+        } else {
+            des.value = { method, path, handlers: [des.value] };
         }
         return des;
     }
@@ -38,23 +38,23 @@ export function Wares<
 }
 export function Status(status: number) {
     return (_: any, __: any, des: PropertyDescriptor) => {
-        let obj = typeof des.value === "object" ? des.value : { opts: {}, handlers: [des.value] };
-        obj.opts = { ...obj.opts, status };
+        let obj = typeof des.value === "object" ? des.value : { handlers: [des.value] };
+        obj.handlers = [(req: HttpRequest, res: HttpResponse, next: NextFunction) => {
+            res.status(status);
+            next();
+        }].concat(obj.handlers);
         des.value = obj;
         return des;
     }
 }
 export function Header(header: { [k: string]: any } | THandler) {
     return (_: any, __: any, des: PropertyDescriptor) => {
-        let obj = typeof des.value === "object" ? des.value : { opts: {}, handlers: [des.value] };
-        if (typeof header === 'function') {
-            obj.handlers = [(req: HttpRequest, res: HttpResponse, next: NextFunction) => {
-                req.options = { ...obj.opts, headers: header(req, res, next) };
-                next();
-            }].concat(obj.handlers);
-        } else {
-            obj.opts = { ...obj.opts, header };
-        }
+        let obj = typeof des.value === "object" ? des.value : { handlers: [des.value] };
+        obj.handlers = [(req: HttpRequest, res: HttpResponse, next: NextFunction) => {
+            let _headers = typeof header === 'function' ? header(req, res, next) : header;
+            res.header(_headers);
+            next();
+        }].concat(obj.handlers);
         des.value = obj;
         return des;
     }
@@ -71,7 +71,6 @@ export function Controller(path: string = "") {
                 if (el !== target && typeof el === 'object') {
                     c_routes.push({
                         method: el.method,
-                        opts: el.opts,
                         path: path + el.path,
                         handlers: el.handlers
                     });

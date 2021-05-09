@@ -1,6 +1,5 @@
 export type { HttpRequest, HttpResponse, NextFunction } from "./types.ts";
-export { default as Router } from "./router.ts";
-export { Dero, dero, addControllers } from "./dero.ts";
+export { Dero, dero } from "./dero.ts";
 export { 
     Get, 
     Post, 
