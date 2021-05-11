@@ -98,7 +98,7 @@ dero
     .get("/hello-dero", (req, res) => {
         res.header({ "x-powered-by": "anything" })
             .status(201)
-            .body("with header and status");
+            .body({ message: "With status and header" });
     });
 
 await dero.listen(3000);
@@ -120,7 +120,7 @@ class HelloController {
     @Status(201)
     @Get("-dero")
     helloDero() {
-        return "with header and status";
+        return { message: "With status and header" };
     }
 }
 
@@ -154,7 +154,7 @@ class HelloController { }
 ```
 ### Method Decorator
 Method decorator like @Get(path?: string).
->  // METHODS => GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, ANY, TRACE, CONNECT.
+>  Available => @Get, @Post, @Put, @Delete, @Patch, @Head, @Options, @Any, @Trace, @Connect.
 ```ts
 ...
 @Controller("/hello")

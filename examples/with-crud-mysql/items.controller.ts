@@ -33,7 +33,7 @@ const bodyValidator = (req: HttpRequest & ReqWithBody, res: HttpResponse, next: 
 }
 
 @Controller("/items")
-class ItemsRouter {
+class ItemsController {
 
     @Get()
     async findAll() {
@@ -115,4 +115,4 @@ class ItemsRouter {
     }
 }
 
-export default ItemsRouter;
+export default ItemsController;
