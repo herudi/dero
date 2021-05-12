@@ -5,32 +5,20 @@ type TOpts = {
     views?: string;
     [k: string]: any;
 }
-type TRenderOpts = {
-    headers: any;
-    status: number;
-    [k: string]: any;
-}
-function renderEngine({ views = `${Deno.cwd()}/views/` }: TOpts = {}) {
+function renderWithEta({ views = `${Deno.cwd()}/views/` }: TOpts = {}) {
     configure({ views });
     return (req: HttpRequest, res: HttpResponse, next: NextFunction) => {
         res.render = async (name: string, params = {}, ...args: any) => {
-            let opts = args[args.length - 1] as TRenderOpts || {};
-            opts.headers = opts.headers || {};
-            opts.headers["Content-Type"] = "text/html";
-            res.status(opts.status || 200)
-                .header(opts.headers)
-                .body(await renderFile(name, params, ...args));
+            res.header({"Content-Type": "text/html"}).body(await renderFile(name, params, ...args));
         }
         next();
     }
 }
 
 dero
-    .use(renderEngine())
+    .use(renderWithEta())
     .get("/hello/:name", (req, res) => {
-        const headers = { "x-powered-by": "anything" };
-        // example more header
-        res.render("hello", req.params, { headers });
+        res.header({ "x-powered-by": "anything" }).render("hello", req.params);
     })
     .get("/hello", (req, res) => {
         res.render("hello");
