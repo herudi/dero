@@ -8,15 +8,21 @@ export default function respond(req: HttpRequest, res: HttpResponse) {
     res.header = function (value?: { [k: string]: any } | string) {
         if (value) {
             if (typeof value === 'object') {
-                if (this.opts.headers) {
-                    for (const k in value) this.opts.headers.set(k, value[k]);
+                if (value instanceof Headers) {
+                    this.opts.headers = value;
                 } else {
-                    this.opts.headers = new Headers(value);
+                    if (this.opts.headers) {
+                        for (const k in value) {
+                            this.opts.headers.set(k, value[k]);
+                        }
+                    } else {
+                        this.opts.headers = new Headers(value);
+                    }
                 }
                 return this;
             }
             if (typeof value === 'string') {
-                return (this.opts.header ? this.opts.header.get(value) : null) as HttpResponse & string;
+                return (this.opts.headers ? this.opts.headers.get(value) : null) as HttpResponse & string;
             }
         }
         return (this.opts.headers || new Headers()) as HttpResponse & Headers;

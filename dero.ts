@@ -256,7 +256,7 @@ export class Dero<
                     } catch (_e) { }
                 }
             } else {
-                if (this.#nativeHttp === true) console.log('%o', "will force to std/http");
+                // if (this.#nativeHttp === true) console.log('%o', "will force to std/http");
                 for await (const req of server) {
                     (req as any).isHttps = isTls;
                     this.lookup(req as unknown as Req);

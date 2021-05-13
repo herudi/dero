@@ -13,7 +13,7 @@ Fast micro framework for Deno (support native HTTP/2 Hyper and std/http).
   The benchmarks try to 1000 route and call http://localhost:3000/hello999.
   Example :
   ```ts
-    import { dero } from "https://deno.land/x/dero@0.2.0/mod.ts";
+    import { dero } from "https://deno.land/x/dero@0.2.1/mod.ts";
 
     for (let i = 0; i < 1000; i++) {
         dero.get('/hello' + i, (req, res) => {
@@ -86,9 +86,9 @@ Fast micro framework for Deno (support native HTTP/2 Hyper and std/http).
 
 ## Usage
 ```ts
-import { dero } from "https://deno.land/x/dero@0.2.0/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.2.1/mod.ts";
 // or
-// import { dero } from "https://x.nest.land/dero@0.2.0/mod.ts";
+// import { dero } from "https://x.nest.land/dero@0.2.1/mod.ts";
 
 dero
     .get("/hello", (req, res) => {
@@ -106,7 +106,7 @@ await dero.listen(3000);
 
 ## Usage With Routing Controller
 ```ts
-import { dero, Controller, Get, Status, Header, HttpRequest } from "https://deno.land/x/dero@0.2.0/mod.ts";
+import { dero, Controller, Get, Status, Header, HttpRequest } from "https://deno.land/x/dero@0.2.1/mod.ts";
 
 @Controller("/hello")
 class HelloController {
@@ -202,7 +202,7 @@ class HelloController {
         return { "Content-Type": type };
     })
     @Get()
-    hello() {
+    hello2() {
         return Deno.readFile(yourpath);
     }
 }
@@ -244,7 +244,7 @@ dero.config({
 
 ## Middleware
 ```ts
-import { dero, Controller, Get, Wares } from "https://deno.land/x/dero@0.2.0/mod.ts";
+import { dero, Controller, Get, Wares } from "https://deno.land/x/dero@0.2.1/mod.ts";
 
 @Controller("/hello")
 class HelloController {
@@ -271,23 +271,72 @@ dero.use({
 await dero.listen(3000);
 ```
 ## HttpRequest
-### example HttpRequest
 ```ts
+import { HttpRequest } from "https://deno.land/x/dero@0.2.1/mod.ts";
+```
+### Query
+Query http://localhost:3000/hello?name=john
+```ts
+...
+@Controller("/hello")
+class HelloController {
 
-// query => /path?name=john to { "name": "john" }
-req.query
+    @Get()
+    hello(req: HttpRequest) {
+        console.log(req.query);
+        return req.query.name;
+    }
+}
+...
+```
+### Params
+Params example => http://localhost:3000/hello/1
 
-// standart params => /path/:name/:date
-// optional params => /path/:name/:date?
-// filtered params => /path/:image.(png|jpg)
-// all params      => /path/*
-req.params
+Standart params => /path/:id
 
+Optional params => /path/:id?
+
+Filtered params => /path/image/:title.(png|jpg)
+
+All params      => /path/*
+```ts
+...
+@Controller("/hello")
+class HelloController {
+
+    @Get("/:id")
+    hello(req: HttpRequest) {
+        console.log(req.params);
+        return req.params.id;
+    }
+
+    @Get("/:id?")
+    helloOptional(req: HttpRequest) {
+        return req.params.id || 'no params';
+    }
+
+    // only png and jpg extensions.
+    @Get("/image/:title.(png|jpg)")
+    getImage(req: HttpRequest) {
+        return req.params.title;
+    }
+
+    @Get("/all/*")
+    getAllParams(req: HttpRequest) {
+        // log: {"wild":["param1","param2"]}
+        return req.params || {};
+    }
+}
+...
+```
+### Pond
+like req.respond, req.pond help sending body, status, headers.
+req.pond(body, { status, headers }); where body is string, json, Uint8Array, Deno.Reader, 
+
+### All HttpRequest
+```ts
 interface HttpRequest {
-    // req.respond({body, status, headers});
     respond: (r: any) => Promise<void>;
-
-    // req.pond(body, {status, headers});
     pond: (body?: TBody | { [k: string]: any } | null, opts?: PondOptions) => Promise<void>;
     proto: string;
     url: string;
@@ -305,32 +354,75 @@ interface HttpRequest {
 };
 ```
 ## HttpResponse
-### example HttpResponse 
+```ts
+import { HttpResponse } from "https://deno.land/x/dero@0.2.1/mod.ts";
+```
+### Header
+header: (value?: object | string | undefined) => HttpResponse | string | Headers;
 ```ts
 ...
-.get("/hello", (req, res) => {
-    res.body("hello");
-})
+res.header({"key1": "value1"});
+res.header({"key2": "value2"});
+// or same as
+res.header({"key1": "value1", "key2": "value2"});
+
+let header = res.header();
+console.log(header);
+// => Headers {"key1":"value1","key2":"value2"}
+
+console.log(res.header("key1"));
+// => value1
+
+// delete
+header.delete("key1");
+
+console.log(header);
+// => Headers {"key2":"value2"}
+
 ...
-interface HttpResponse {
+@Controller("/hello")
+class HelloController {
 
-    // set header     : res.header({"x-powered-by": "anything"}).body("Hello");
-    // get header     : const xPowered = res.header("x-powered-by");
-    // get header all : const allHeader = res.header();
-    // remove header  : res.header().delete("x-powered-by");
-    header: (value?: { [k: string]: any } | string) => this;
-
-    // set status : res.status(201).body("Hello");
-    // get status : const status = res.status();
-    status: (code?: number) => this;
-
-    // string : res.body("hello");
-    // json   : res.body({ name: "hello" });
-    // file   : res.body(await Deno.readFile(`${Deno.cwd()}/public/style.css`));
-    body: (body?: TBody | { [k: string]: any } | null) => Promise<void>;
-};
+    @Get()
+    hello(req: HttpRequest, res: HttpResponse) {
+        res.header({"content-type": "text/plain"}).body("Done");
+    }
+}
 ...
 ```
+### Status
+status: (code?: number | undefined) => HttpResponse | number;
+```ts
+...
+res.status(201);
+
+console.log(res.status() as number);
+// => 201
+...
+@Controller("/hello")
+class HelloController {
+
+    @Post()
+    hello(req: HttpRequest, res: HttpResponse) {
+        res.status(201).body("Created");
+    }
+}
+...
+```
+### Body
+body: (body?: json | string | Uint8Array | Deno.Reader) => Promise<void>;
+```ts
+@Controller("/hello")
+class HelloController {
+
+    @Post()
+    hello(req: HttpRequest, res: HttpResponse) {
+        res.body(json | string | Uint8Array | Deno.Reader);
+    }
+}
+...
+```
+
 ## Next
 Next Function is a function to next step handler (on middleware).
 ### example next 
