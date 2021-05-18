@@ -16,3 +16,4 @@ export {
     Status, 
     Wares 
 } from "./decorators.ts";
+export { default as Router } from './router.ts';

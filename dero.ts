@@ -4,7 +4,7 @@ import {
     HttpRequest,
     HttpResponse,
     NextFunction,
-    DeroControllers,
+    DeroRoutersControllers,
     DeroConfig
 } from "./types.ts";
 import {
@@ -96,8 +96,19 @@ export class Dero<
             this.on(el.method, prefix + el.path, ...midds.concat(el.handlers));
         }
     }
+    #pushRoutes = (arg: { [k: string]: any }, key: string) => {
+        let wares: any[] = [];
+        if (arg.wares) {
+            wares = (Array.isArray(arg.wares) ? arg.wares : [arg.wares]) as THandlers<Req, Res>;
+        }
+        let arr = Array.isArray(arg[key]) ? arg[key] : [arg[key]];
+        for (let i = 0; i < arr.length; i++) {
+            const obj = key === 'class' ? new arr[i]() : arr[i];
+            this.#addRoutes(arg.prefix, wares, obj.c_routes);
+        }
+    }
     use(...middlewares: THandlers<Req, Res>): this;
-    use(controllers: DeroControllers<Req, Res>): this;
+    use(routerController: DeroRoutersControllers<Req, Res>): this;
     use(prefix: string, ...middlewares: THandlers<Req, Res>): this;
     use(...args: any): this;
     use(...args: any) {
@@ -114,16 +125,9 @@ export class Dero<
             else if (arg === '/' || arg === '') this.midds = this.midds.concat(findFns(args));
             else this.pmidds[arg] = [modPath(arg)].concat(findFns(args));
         }
-        else if (typeof larg === 'object' && larg.class) {
-            let wares: any[] = [];
-            if (arg.wares) {
-                wares = (Array.isArray(arg.wares) ? arg.wares : [arg.wares]) as THandlers<Req, Res>;
-            }
-            let _class = Array.isArray(arg.class) ? arg.class : [arg.class];
-            for (let i = 0; i < _class.length; i++) {
-                const cls = new _class[i]();
-                this.#addRoutes(arg.prefix, wares, cls.c_routes);
-            }
+        else if (typeof larg === 'object') {
+            if (larg.class) this.#pushRoutes(arg, 'class');
+            if (larg.routes) this.#pushRoutes(arg, 'routes');
         }
         else this.midds = this.midds.concat(findFns(args));
         return this;
@@ -188,7 +192,6 @@ export class Dero<
                     proto: opts.proto,
                     isHttps: opts.isTls,
                     method: request.method,
-                    fullUrl: request.url,
                     url: arr[2],
                     body: readerBody,
                     headers: request.headers,
@@ -256,7 +259,6 @@ export class Dero<
                     } catch (_e) { }
                 }
             } else {
-                // if (this.#nativeHttp === true) console.log('%o', "will force to std/http");
                 for await (const req of server) {
                     (req as any).isHttps = isTls;
                     this.lookup(req as unknown as Req);

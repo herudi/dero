@@ -13,7 +13,7 @@ Fast micro framework for Deno (support native HTTP/2 Hyper and std/http).
   The benchmarks try to 1000 route and call http://localhost:3000/hello999.
   Example :
   ```ts
-    import { dero } from "https://deno.land/x/dero@0.2.1/mod.ts";
+    import { dero } from "https://deno.land/x/dero@0.2.2/mod.ts";
 
     for (let i = 0; i < 1000; i++) {
         dero.get('/hello' + i, (req, res) => {
@@ -84,29 +84,30 @@ Fast micro framework for Deno (support native HTTP/2 Hyper and std/http).
   ```
 </details>
 
+## Installation
+### deno.land
+```ts
+import { dero } from "https://deno.land/x/dero@0.2.2/mod.ts";
+```
+### nest.land
+```ts
+import { dero } from "https://x.nest.land/dero@0.2.2/mod.ts";
+```
+
 ## Usage
 ```ts
-import { dero } from "https://deno.land/x/dero@0.2.1/mod.ts";
-// or
-// import { dero } from "https://x.nest.land/dero@0.2.1/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.2.2/mod.ts";
 
 dero
     .get("/hello", (req, res) => {
         res.body("hello");
     })
-    // or
-    .get("/hello-dero", (req, res) => {
-        res.header({ "x-powered-by": "anything" })
-            .status(201)
-            .body({ message: "With status and header" });
-    });
-
-await dero.listen(3000);
+    .listen(3000);
 ```
 
 ## Usage With Routing Controller
 ```ts
-import { dero, Controller, Get, Status, Header, HttpRequest } from "https://deno.land/x/dero@0.2.1/mod.ts";
+import { dero, Controller, Get } from "https://deno.land/x/dero@0.2.2/mod.ts";
 
 @Controller("/hello")
 class HelloController {
@@ -115,34 +116,28 @@ class HelloController {
     hello() {
         return "hello";
     }
-
-    @Header({ "x-powered-by": "anything" })
-    @Status(201)
-    @Get("-dero")
-    helloDero() {
-        return { message: "With status and header" };
-    }
 }
 
-dero.use({
-    class: [HelloController]
-});
+dero
+    .use({ class: [HelloController] });
+    .listen(3000);
 
-// or
+// or with middleware and prefix
 // dero.use({
 //     prefix: "/api/v1",
 //     wares: [midd1, midd2],
 //     class: [HelloController]
 // });
-
-await dero.listen(3000);
 ```
 ## Run
 ```bash
 deno run --allow-net yourfile.ts
-// or support native http (use --unstable flag)
+```
+> Note: for now, native http need --unstable flag.
+```bash
 deno run --allow-net --unstable yourfile.ts
 ```
+
 ## Decorator
 ### Controller Decorator
 Controller decorator @Controller(path?: string).
@@ -209,15 +204,12 @@ class HelloController {
 ...
 ```
 ### Middlewares Decorator
-Set Middlewares on decorator @Wares(mid1, mid2, mid3).
+Set Middlewares on decorator @Wares(...middlewares).
 ```ts
 ...
 @Controller("/hello")
 class HelloController {
 
-    // @Wares(mid1, mid2, mid3)
-    // or
-    // @Wares([mid1, mid2, mid3])
     @Wares((req, res, next) => {
         req.foo = "foo";
         next();
@@ -229,7 +221,19 @@ class HelloController {
 }
 ...
 ```
-
+### Add class controller to dero.use()
+```ts
+...
+dero.use({
+    // add class controller
+    class: [ClassController1, ClassController2],
+    // add middlewares
+    wares: [midd1, midd2],
+    // add prefix url
+    prefix: "/api/v1"
+})
+...
+```
 ## Config (if you want)
 ```ts
 ...
@@ -244,16 +248,13 @@ dero.config({
 
 ## Middleware
 ```ts
-import { dero, Controller, Get, Wares } from "https://deno.land/x/dero@0.2.1/mod.ts";
+import { dero, Controller, Get, Wares } from "https://deno.land/x/dero@0.2.2/mod.ts";
 
 @Controller("/hello")
 class HelloController {
 
     // inside handlers use @Wares
-    @Wares((req, res, next) => {
-        req.foo = "foo";
-        next();
-    })
+    @Wares(midd1, midd2)
     @Get()
     hello() {
         return "hello";
@@ -262,8 +263,8 @@ class HelloController {
 // global middleware with dero.use(...middlewares)
 dero.use(midd1, midd2);
 
+// the middleware available only HelloController
 dero.use({
-    // the middleware available only HelloController
     wares: [midd1, midd2]
     class: [HelloController]
 });
@@ -272,7 +273,7 @@ await dero.listen(3000);
 ```
 ## HttpRequest
 ```ts
-import { HttpRequest } from "https://deno.land/x/dero@0.2.1/mod.ts";
+import { HttpRequest } from "https://deno.land/x/dero@0.2.2/mod.ts";
 ```
 ### Query
 Query http://localhost:3000/hello?name=john
@@ -333,6 +334,9 @@ class HelloController {
 like req.respond, req.pond help sending body, status, headers.
 req.pond(body, { status, headers }); where body is string, json, Uint8Array, Deno.Reader, 
 
+### getBaseUrl
+function getBaseUrl() return base url as string.
+
 ### All HttpRequest
 ```ts
 interface HttpRequest {
@@ -351,34 +355,63 @@ interface HttpRequest {
     path: string;
     query: { [k: string]: any };
     search: string | null;
+    getBaseUrl: () => string;
 };
 ```
 ## HttpResponse
 ```ts
-import { HttpResponse } from "https://deno.land/x/dero@0.2.1/mod.ts";
+import { HttpResponse } from "https://deno.land/x/dero@0.2.2/mod.ts";
 ```
 ### Header
-header: (value?: object | string | undefined) => HttpResponse | string | Headers;
+header: (key?: object | string | undefined, value?: any) => HttpResponse | string | Headers;
 ```ts
 ...
-res.header({"key1": "value1"});
-res.header({"key2": "value2"});
-// or same as
-res.header({"key1": "value1", "key2": "value2"});
+// key and value
+res.header("key1", "value1");
 
-let header = res.header();
-console.log(header);
-// => Headers {"key1":"value1","key2":"value2"}
+// with object
+res.header({ "key2": "value2" });
 
+// multiple header
+res.header({
+    "key3": "value3",
+    "key4": "value4"
+});
+
+// get header
+console.log(res.header());
+// => Headers {
+//         "key1":"value1",
+//         "key2":"value2",
+//         "key3":"value3",
+//         "key4":"value4",
+//     }
+
+// get header by key
 console.log(res.header("key1"));
 // => value1
 
-// delete
-header.delete("key1");
+// delete key1
+res.header().delete("key1");
+console.log(res.header());
+// => Headers {
+//         "key2":"value2",
+//         "key3":"value3",
+//         "key4":"value4",
+//     }
 
-console.log(header);
-// => Headers {"key2":"value2"}
+// convert to json object
+console.log(Object.fromEntries(res.header().entries()));
+// => {
+//       "key2":"value2",
+//       "key3":"value3",
+//       "key4":"value4",
+//    }
 
+// reset header
+res.header(new Headers());
+console.log(res.header());
+// => Headers { }
 ...
 @Controller("/hello")
 class HelloController {
@@ -390,13 +423,30 @@ class HelloController {
 }
 ...
 ```
+### Type
+Shorthand for res.header("Content-Type", yourContentType);
+```ts
+...
+@Controller("/hello")
+class HelloController {
+
+    @Get()
+    hello(req: HttpRequest, res: HttpResponse) {
+        res.type("text/html").body("<h1>Done</h1>");
+    }
+}
+...
+```
+
 ### Status
 status: (code?: number | undefined) => HttpResponse | number;
 ```ts
 ...
+// set status
 res.status(201);
 
-console.log(res.status() as number);
+// get status
+console.log(res.status());
 // => 201
 ...
 @Controller("/hello")
@@ -412,15 +462,56 @@ class HelloController {
 ### Body
 body: (body?: json | string | Uint8Array | Deno.Reader) => Promise<void>;
 ```ts
+...
 @Controller("/hello")
 class HelloController {
 
-    @Post()
+    @Get()
     hello(req: HttpRequest, res: HttpResponse) {
         res.body(json | string | Uint8Array | Deno.Reader);
     }
 }
 ...
+```
+### Return
+Mutate ruturning body.
+> note: this is example using React as template engine. 
+```tsx
+// filename server.tsx
+import { dero } from "https://deno.land/x/dero@0.2.2/mod.ts";
+import * as React from "https://jspm.dev/react@17.0.2";
+import * as ReactDOMServer from "https://jspm.dev/react-dom@17.0.2/server";
+
+declare global {
+    namespace JSX {
+        interface IntrinsicElements {
+            [k: string]: any;
+        }
+    }
+}
+
+dero
+    .use((req, res, next) => {
+        // push logic and mutate body in middleware.
+        res.return.push((body) => {
+            if (React.isValidElement(body)) {
+                res.type("text/html");
+                return ReactDOMServer.renderToStaticMarkup(body);
+            }
+            return;
+        });
+        next();
+    })
+    .get("/hello", (req, res) => {
+        const nums = [1, 2, 3, 4];
+        return (
+            <div>
+                <h1>List Nums</h1>
+                {nums.map(el => <p key={el}>{el}</p>)}
+            </div>
+        )
+    })
+    .listen(3000)
 ```
 
 ## Next
@@ -434,6 +525,28 @@ Next Function is a function to next step handler (on middleware).
    }
    next();
 })
+...
+```
+## Router
+Dero support classic router.
+```ts
+...
+import { dero, Router } from "https://deno.land/x/dero@0.2.2/mod.ts";
+
+const router = new Router();
+router.get("/hello", (req, res) => {
+    res.body("hello");
+})
+dero
+    .use({ routes: [router] })
+    .listen(3000);
+
+// or with middleware and prefix
+// dero.use({
+//     prefix: "/api/v1",
+//     wares: [midd1, midd2],
+//     routes: [router1, router2]
+// });
 ...
 ```
 ## listen(opts: number | object, callback?: (err?: Error, opts?: object) => void);
@@ -477,8 +590,8 @@ dero.use("*", (req, res, next) => {
 ```
 ## The role of dero.use
 ```ts
-// controllers object { class: Array, prefix?: string, wares?: Array }
-use(controllers: DeroControllers): this;
+// controllers or routes object { class?: Array, routes?: Array, prefix?: string, wares?: Array }
+use(routerControllers: DeroRouterControllers): this;
 // spread array middlewares 
 use(...middlewares: Array<THandler | THandler[]>): this;
 // prefix string spread array middleware (for serve static here)

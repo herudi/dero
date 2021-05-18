@@ -16,14 +16,17 @@ export interface HttpRequest {
     path: string;
     query: { [k: string]: any };
     search: string | null;
+    getBaseUrl: () => string;
     [k: string]: any;
 };
 export interface HttpResponse {
     locals: any;
     opts: PondOptions;
-    header: (value?: { [k: string]: any } | string) => this | (this & Headers) | (this & string);
+    header: (key?: { [k: string]: any } | string, value?: any) => this | (this & Headers) | (this & string);
     status: (code?: number) => this | (this & number);
+    type: (contentType: string) => this;
     body: (body?: TBody | { [k: string]: any } | null) => Promise<void>;
+    return: ((body: any) => any)[];
     [k: string]: any;
 };
 export type PondOptions = {
@@ -44,11 +47,12 @@ export type THandlers<
     Req extends HttpRequest = HttpRequest,
     Res extends HttpResponse = HttpResponse
     > = Array<THandler<Req, Res> | THandler<Req, Res>[]>;
-export type DeroControllers<
+export type DeroRoutersControllers<
     Req extends HttpRequest = HttpRequest,
     Res extends HttpResponse = HttpResponse
     > = {
-        class: { new(...args: any): { [k: string]: any } }[] | { new(...args: any): { [k: string]: any } };
+        class?: { new(...args: any): { [k: string]: any } }[] | { new(...args: any): { [k: string]: any } };
         wares?: THandler<Req, Res> | THandlers<Req, Res>;
         prefix?: string | undefined;
+        routes?: { [k: string]: any }[];
     };
