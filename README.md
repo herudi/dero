@@ -13,7 +13,7 @@ Fast micro framework for Deno (support native HTTP/2 Hyper and std/http).
   The benchmarks try to 1000 route and call http://localhost:3000/hello999.
   Example :
   ```ts
-    import { dero } from "https://deno.land/x/dero@0.2.5/mod.ts";
+    import { dero } from "https://deno.land/x/dero@0.2.6/mod.ts";
 
     for (let i = 0; i < 1000; i++) {
         dero.get('/hello' + i, (req, res) => {
@@ -87,16 +87,16 @@ Fast micro framework for Deno (support native HTTP/2 Hyper and std/http).
 ## Installation
 ### deno.land
 ```ts
-import { dero } from "https://deno.land/x/dero@0.2.5/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.2.6/mod.ts";
 ```
 ### nest.land
 ```ts
-import { dero } from "https://x.nest.land/dero@0.2.5/mod.ts";
+import { dero } from "https://x.nest.land/dero@0.2.6/mod.ts";
 ```
 
 ## Usage
 ```ts
-import { dero } from "https://deno.land/x/dero@0.2.5/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.2.6/mod.ts";
 
 dero
     .get("/hello", (req, res) => {
@@ -107,7 +107,7 @@ dero
 
 ## Usage With Routing Controller
 ```ts
-import { dero, Controller, Get } from "https://deno.land/x/dero@0.2.5/mod.ts";
+import { dero, Controller, Get } from "https://deno.land/x/dero@0.2.6/mod.ts";
 
 @Controller("/hello")
 class HelloController {
@@ -248,7 +248,7 @@ dero.config({
 
 ## Middleware
 ```ts
-import { dero, Controller, Get, Wares } from "https://deno.land/x/dero@0.2.5/mod.ts";
+import { dero, Controller, Get, Wares } from "https://deno.land/x/dero@0.2.6/mod.ts";
 
 @Controller("/hello")
 class HelloController {
@@ -273,7 +273,7 @@ await dero.listen(3000);
 ```
 ## HttpRequest
 ```ts
-import { HttpRequest } from "https://deno.land/x/dero@0.2.5/mod.ts";
+import { HttpRequest } from "https://deno.land/x/dero@0.2.6/mod.ts";
 ```
 ### Query
 Query http://localhost:3000/hello?name=john
@@ -360,7 +360,7 @@ interface HttpRequest {
 ```
 ## HttpResponse
 ```ts
-import { HttpResponse } from "https://deno.land/x/dero@0.2.5/mod.ts";
+import { HttpResponse } from "https://deno.land/x/dero@0.2.6/mod.ts";
 ```
 ### Header
 header: (key?: object | string | undefined, value?: any) => HttpResponse | string | Headers;
@@ -478,7 +478,7 @@ Mutate ruturning body.
 > note: this is example using React as template engine. 
 ```tsx
 // filename server.tsx
-import { dero } from "https://deno.land/x/dero@0.2.5/mod.ts";
+import { dero } from "https://deno.land/x/dero@0.2.6/mod.ts";
 import * as React from "https://jspm.dev/react@17.0.2";
 import * as ReactDOMServer from "https://jspm.dev/react-dom@17.0.2/server";
 
@@ -531,7 +531,7 @@ Next Function is a function to next step handler (on middleware).
 Dero support classic router.
 ```ts
 ...
-import { dero, Router } from "https://deno.land/x/dero@0.2.5/mod.ts";
+import { dero, Router } from "https://deno.land/x/dero@0.2.6/mod.ts";
 
 const router = new Router();
 router.get("/hello", (req, res) => {

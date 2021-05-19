@@ -4,7 +4,7 @@
   "entry": "./mod.ts",
   "description": "Fast micro framework for Deno (support native HTTP/2 Hyper and std/http)",
   "homepage": "https://github.com/herudi/dero",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "files": [
     "./decorators.ts",
     "./respond.ts",
