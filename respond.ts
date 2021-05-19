@@ -62,9 +62,11 @@ export default function respond(req: HttpRequest, res: HttpResponse) {
         return this.respond({ body, ...opts });
     };
     req.getBaseUrl = function () {
+        let host = req.headers.get("host") || req.headers.get("Host");
+        let proto = this.isHttps ? 'https://' : 'http://';
+        if (host) return proto + host;
         let obj = this.conn?.localAddr as any;
         if (obj) {
-            let proto = this.isHttps ? 'https://' : 'http://';
             let ip = obj.hostname || '127.0.0.1';
             let port = (obj.port && obj.port === 80) ? '' : ':'+obj.port;
             return proto + ip + port;
