@@ -95,18 +95,7 @@ export default class Router<
                         obj = routes[i];
                         if (obj.pathx && obj.pathx.test(url)) {
                             nf = false;
-                            if (obj.m) handlers = obj.handlers;
-                            else {
-                                handlers = this.#addMidd(this.midds, notFound, obj.handlers, url, this.pmidds);
-                                if (this.route[method] && this.route[method][i]) {
-                                    this.route[method][i] = { 
-                                        m: true, 
-                                        params: obj.params, 
-                                        handlers, 
-                                        pathx: obj.pathx
-                                    };
-                                }
-                            }
+                            handlers = this.#addMidd(this.midds, notFound, obj.handlers, url, this.pmidds);
                             if (obj.params) {
                                 matches = obj.pathx.exec(url);
                                 while (j < obj.params.length) params[obj.params[j]] = matches[++j] || null;
