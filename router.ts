@@ -97,7 +97,7 @@ export default class Router<
                             nf = false;
                             if (obj.m) handlers = obj.handlers;
                             else {
-                                handlers = this.#addMidd(this.midds, notFound, obj.handlers);
+                                handlers = this.#addMidd(this.midds, notFound, obj.handlers, url, this.pmidds);
                                 if (this.route[method] && this.route[method][i]) {
                                     this.route[method][i] = { 
                                         m: true, 
