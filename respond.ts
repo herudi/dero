@@ -65,7 +65,7 @@ export default function respond(req: HttpRequest, res: HttpResponse) {
         let host = req.headers.get("host");
         let proto = void 0 as any;
         let ref = req.headers.get("referer") || req.headers.get("referrer");
-        if (ref) proto = new URL(ref).protocol;
+        if (ref) proto = ref.startsWith("https") ? 'https://' : 'http://';
         proto = proto || (this.isHttps ? 'https://' : 'http://');
         if (host) return proto + host;
         let obj = this.conn?.localAddr as any;
