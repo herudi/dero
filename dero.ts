@@ -190,8 +190,9 @@ export class Dero<
                 let req = {
                     conn,
                     proto: opts.proto,
-                    isHttps: opts.isTls,
+                    isSecure: opts.isTls,
                     method: request.method,
+                    __url: request.url,
                     url: arr[2],
                     body: readerBody,
                     headers: request.headers,
@@ -260,7 +261,7 @@ export class Dero<
                 }
             } else {
                 for await (const req of server) {
-                    (req as any).isHttps = isTls;
+                    (req as any).isSecure = isTls;
                     this.lookup(req as unknown as Req);
                 }
             }

@@ -6,7 +6,7 @@ export interface HttpRequest {
     proto: string;
     url: string;
     conn: Deno.Conn;
-    isHttps: boolean | undefined;
+    isSecure: boolean | undefined;
     method: string;
     headers: Headers;
     body: Deno.Reader | null;

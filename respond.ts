@@ -62,19 +62,10 @@ export default function respond(req: HttpRequest, res: HttpResponse) {
         return this.respond({ body, ...opts });
     };
     req.getBaseUrl = function () {
+        if (req.__url) return new URL(req.__url).origin;
         let host = req.headers.get("host");
-        let proto = void 0 as any;
-        let ref = req.headers.get("referer") || req.headers.get("referrer");
-        if (ref) proto = ref.startsWith("https") ? 'https://' : 'http://';
-        proto = proto || (this.isHttps ? 'https://' : 'http://');
-        if (host) return proto + host;
-        let obj = this.conn?.localAddr as any;
-        if (obj) {
-            let ip = obj.hostname || '127.0.0.1';
-            let port = (obj.port && obj.port === 80) ? '' : ':'+obj.port;
-            return proto + ip + port;
-        }
-        return '';
+        let proto = (req.headers.get("X-Forwarded-Proto") || req.headers.get("X-Forwarded-Protocol") || (this.isSecure ? 'https' : 'http')) + '://';
+        return proto + host;
     };
     res.body = (body?: TBody | { [k: string]: any } | null) => req.pond(body, res.opts);
 }
