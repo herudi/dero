@@ -22,7 +22,7 @@ import {...} from "https://deno.land/x/dero@1.0.0/mod.ts";
 ```
 ### nest.land
 ```ts
-import {...} from "https://x.nest.land/dero@1.0.0/mod.ts";
+import {...} from "https://x.nest.land/dero_framework@1.0.0/mod.ts";
 ```
 
 ## Example
