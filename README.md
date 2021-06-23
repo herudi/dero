@@ -182,7 +182,7 @@ class HelloController extends BaseController {
 }
 ...
 ```
-### Inject
+### Inject Decorator
 ```ts
 ...
 class UserService {
@@ -205,7 +205,7 @@ class UserController extends BaseController {
 }
 ...
 ```
-### View
+### View Decorator
 > requires viewEngine middleware 
 ```ts
 ...
@@ -222,8 +222,23 @@ class UserController extends BaseController {
 }
 ...
 ```
-### Body Validator
-More doc see [class-validator](https://github.com/typestack/class-validator).
+### Type Decorator
+set content type on decorator.
+```ts
+...
+@Controller("/user")
+class UserController extends BaseController {
+
+    @Type("html")
+    @Get()
+    index() {
+        return `<h1>Hello</h1>`;
+    }
+}
+...
+```
+### Validate Decorator 
+Body validator. see doc [class-validator](https://github.com/typestack/class-validator).
 @Validate(dtoClass, options?);
 ```ts
 ...

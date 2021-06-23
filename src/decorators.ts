@@ -28,6 +28,15 @@ type THeaders<
   next: NextFunction,
 ) => { [k: string]: any };
 
+type TString<
+  Req extends HttpRequest = HttpRequest,
+  Res extends HttpResponse = HttpResponse,
+> = (
+  req: Req,
+  res: Res,
+  next: NextFunction,
+) => string;
+
 export function joinTargetMethod(target: any, prop: string, arr: any[]) {
   let obj = target["methods"] || {};
   obj[prop] = obj[prop] || {};
@@ -84,13 +93,25 @@ export function Wares<
     return des;
   };
 }
-export function View(name: string) {
+export function View(name: string | TString) {
   return (target: any, prop: string, des: PropertyDescriptor) => {
     const viewFn: Handler = (req, res, next) => {
-      res.___view = name;
+      res.___view = typeof name === "function" ? name(req, res, next) : name;
       next();
     };
     target["methods"] = joinTargetMethod(target, prop, [viewFn]);
+    return des;
+  };
+}
+export function Type(name: string | TString) {
+  return (target: any, prop: string, des: PropertyDescriptor) => {
+    const typeFn: Handler = (req, res, next) => {
+      res.type(
+        typeof name === "function" ? name(req, res, next) : name,
+      );
+      next();
+    };
+    target["methods"] = joinTargetMethod(target, prop, [typeFn]);
     return des;
   };
 }
