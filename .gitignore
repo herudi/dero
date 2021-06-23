@@ -1,6 +1,6 @@
 .vscode
-public
-testdev
+/public
+/views
 note.txt
 dev.ts
 dev.tsx

@@ -1,6 +1,0 @@
-<body>
-    <% if (it.name) { %>
-        <h1>hello, <%= it.name %>!</h1>
-    <% } %>
-    <h2>Done</h2>
-</body>

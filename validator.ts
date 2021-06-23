@@ -1,0 +1,1 @@
+export * from "https://cdn.skypack.dev/class-validator?dts";

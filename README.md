@@ -1,148 +1,95 @@
 ## Dero
-Fast micro framework for Deno (support native HTTP/2 Hyper and std/http).
+Fast web framework for Deno (support native HTTP/2 [Hyper](https://hyper.rs) and std/http).
+
+[![License](https://img.shields.io/:license-mit-blue.svg)](http://badges.mit-license.org)
+[![deno.land](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Flatest-version%2Fx%2Fdero@1.0.0%2Fmod.ts)](https://deno.land/x/dero)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](http://makeapullrequest.com)
+![deps badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fdep-count%2Fhttps%2Fdeno.land%2Fx%2Fdero%2Fmod.ts)
+![cache badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fcache-size%2Fhttps%2Fdeno.land%2Fx%2Fdero%2Fmod.ts)
+[![nest.land](https://nest.land/badge.svg)](https://nest.land/package/dero)
 
 ## Features
-- Fast (try to 1000+ route, your app still fast).
-- Easy to use (inspired by [expressjs](https://github.com/expressjs/express) middleware (req, res, next)).
-- Routing Controller ready.
-- Support Native HTTP/2 server with [Hyper](https://hyper.rs/) (required Deno 1.9 or higher).
-
-<details>
-  <summary>Benchmarks</summary>
-
-  The benchmarks try to 1000 route and call http://localhost:3000/hello999.
-  Example :
-  ```ts
-    import { dero } from "https://deno.land/x/dero@0.2.8/mod.ts";
-
-    for (let i = 0; i < 1000; i++) {
-        dero.get('/hello' + i, (req, res) => {
-            res.body('hello route ' + i);
-        });
-    }
-
-    await dero.listen(3000);
-  ```
-  ```bash
-    wrk -t4 -c4 -d10s http://localhost:3000/hello999
-  ```
-  
-  ### Dero (native http)
-  ```bash
-    Running 10s test @ http://localhost:3000/hello999
-    4 threads and 4 connections
-    Thread Stats   Avg      Stdev     Max   +/- Stdev
-        Latency    2.73ms   686.31us  12.67ms   83.95%
-        Req/Sec    366.39   18.15     404.00    75.75%
-    14611 requests in 10.02s, 1.83MB read
-    Requests/sec:   1458.55
-    Transfer/sec:   186.59KB
-  ```
-  ### Dero (std/http)
-  ```bash
-    Running 10s test @ http://localhost:3000/hello999
-    4 threads and 4 connections
-    Thread Stats   Avg      Stdev     Max   +/- Stdev
-        Latency    3.11ms    1.09ms  20.88ms   90.50%
-        Req/Sec    324.37    34.39   380.00    79.75%
-    12942 requests in 10.02s, 682.49KB read
-    Requests/sec:   1291.15
-    Transfer/sec:   68.09KB
-  ```
-  ### Oak
-  ```bash
-    Running 10s test @ http://localhost:3000/hello999
-    4 threads and 4 connections
-    Thread Stats   Avg      Stdev     Max   +/- Stdev
-        Latency    4.76ms    1.16ms  23.79ms   80.17%
-        Req/Sec    210.51    22.25   262.00    81.00%
-    8398 requests in 10.02s, 664.11KB read
-    Requests/sec:    837.86
-    Transfer/sec:    77.73KB
-  ```
-  ### Opine
-  ```bash
-    Running 10s test @ http://localhost:3000/hello999
-    4 threads and 4 connections
-    Thread Stats   Avg      Stdev     Max   +/- Stdev
-        Latency    9.43ms   26.38ms 284.45ms   97.61%
-        Req/Sec    176.44   31.29   222.00     73.98%
-    6916 requests in 10.02s, 364.71KB read
-    Requests/sec:    689.97
-    Transfer/sec:    36.39KB
-  ```
-  ### Expressjs (nodejs)
-  ```bash
-    Running 10s test @ http://localhost:3000/hello999
-    4 threads and 4 connections
-    Thread Stats   Avg      Stdev     Max   +/- Stdev
-        Latency    4.80ms    3.75ms  78.24ms   96.34%
-        Req/Sec    220.80    43.89   282.00    80.50%
-    8818 requests in 10.04s, 0.97MB read
-    Requests/sec:    878.39
-    Transfer/sec:    98.65KB
-  ```
-</details>
+- Native HTTP/2 support.
+- Controller decorator support.
+- Middleware support.
+- Includes body parser (json and urlencoded).
+- Validator ready (based on [class-validator](https://github.com/typestack/class-validator)).
 
 ## Installation
 ### deno.land
 ```ts
-import { dero } from "https://deno.land/x/dero@0.2.8/mod.ts";
+import {...} from "https://deno.land/x/dero@1.0.0/mod.ts";
 ```
 ### nest.land
 ```ts
-import { dero } from "https://x.nest.land/dero@0.2.8/mod.ts";
+import {...} from "https://x.nest.land/dero@1.0.0/mod.ts";
 ```
 
-## Usage
+## Example
 ```ts
-import { dero } from "https://deno.land/x/dero@0.2.8/mod.ts";
+import { 
+    Dero, 
+    BaseController, 
+    Controller, 
+    Inject, 
+    Get
+} from "https://deno.land/x/dero@1.0.0/mod.ts";
 
-dero
-    .get("/hello", (req, res) => {
-        res.body("hello");
-    })
-    .listen(3000);
-```
-
-## Usage With Routing Controller
-```ts
-import { dero, Controller, Get } from "https://deno.land/x/dero@0.2.8/mod.ts";
-
-@Controller("/hello")
-class HelloController {
-
-    @Get()
-    hello() {
-        return "hello";
+// service
+class UserService {
+    async findAll() {
+        // const data = await User.findAll();
+        return { status: 200, data: "hay" };
     }
 
-    @Get()
-    json() {
-        return { name: 'hello' };
+    async findById(id: number) {
+        // const data = await User.findId(id);
+        return { status: 200, data: "hay " + id };
     }
 }
 
-dero
-    .use({ class: [HelloController] });
-    .listen(3000);
+// controller
+@Controller("/user")
+class UserController extends BaseController {
 
-// or with middleware and prefix
-// dero.use({
-//     prefix: "/api/v1",
-//     wares: [midd1, midd2],
-//     class: [HelloController]
-// });
+    @Inject(UserService)
+    private readonly userService!: UserService;
+
+    @Get()
+    findAll() {
+        return this.userService.findAll();
+    }
+
+    @Get("/:id")
+    findById() {
+        const { id } = this.request.params;
+        return this.userService.findById(Number(id));
+    }
+}
+
+// application
+class Application extends Dero {
+    constructor() {
+        super();
+        this.use({ class: [UserController] });
+    }
+}
+
+// listen 
+await new Application().listen(3000, () => {
+    console.log("Running on port 3000")
+})
 ```
+
+
 ## Run
 > Note: for now, native http need --unstable flag.
 ```bash
 deno run --allow-net --unstable yourfile.ts
 ```
+or 
 ```bash
 deno run --allow-net yourfile.ts
-
-// will be force to std/http if no --unstable flag
 ```
 
 ## Decorator
@@ -151,7 +98,7 @@ Controller decorator @Controller(path?: string).
 ```ts
 ...
 @Controller("/hello")
-class HelloController { }
+class HelloController extends BaseController { }
 ...
 ```
 ### Method Decorator
@@ -160,7 +107,7 @@ Method decorator like @Get(path?: string).
 ```ts
 ...
 @Controller("/hello")
-class HelloController {
+class HelloController extends BaseController {
 
     @Get()
     hello() {
@@ -174,12 +121,21 @@ Set status on decorator like @Status(code: number).
 ```ts
 ...
 @Controller("/hello")
-class HelloController {
+class HelloController extends BaseController {
 
     @Status(201)
     @Post()
     save() {
         return "Created";
+    }
+    
+    @Status((req, res) => {
+        // logic here
+        return 200;
+    })
+    @Put()
+    update() {
+        return "Updated";
     }
 }
 ...
@@ -189,11 +145,9 @@ Set header on decorator @Header(object | fn).
 ```ts
 ...
 @Controller("/hello")
-class HelloController {
+class HelloController extends BaseController {
 
-    @Header({
-        "Content-Type": "text/html"
-    })
+    @Header({ "Content-Type": "text/html" })
     @Get()
     hello() {
         return "<h1>Hello</h1>";
@@ -205,7 +159,7 @@ class HelloController {
     })
     @Get()
     hello2() {
-        return Deno.readFile(yourpath);
+        this.response.file("./path/to/file.css");
     }
 }
 ...
@@ -215,83 +169,125 @@ Set Middlewares on decorator @Wares(...middlewares).
 ```ts
 ...
 @Controller("/hello")
-class HelloController {
+class HelloController extends BaseController {
 
     @Wares((req, res, next) => {
         req.foo = "foo";
         next();
     })
     @Get()
-    hello(req: HttpRequest) {
-        return req.foo;
+    hello() {
+        return this.request.foo;
     }
 }
 ...
 ```
-### Add class controller to dero.use()
+### Inject
 ```ts
 ...
-dero.use({
-    // add class controller
-    class: [ClassController1, ClassController2],
-    // add middlewares
-    wares: [midd1, midd2],
-    // add prefix url
-    prefix: "/api/v1"
-})
-...
-```
-### Recipe routing controller for Dero
-#### Not Supported
-```ts
-...
-@Controller("/user")
-class UserController {
-
-    constructor(){
-        this.service = new UserService();
+class UserService {
+    async findAll(){
+        const data = await User.findAll();
+        return { status: 200, data };
     }
+}
+
+@Controller("/user")
+class UserController extends BaseController {
+
+    @Inject(UserService)
+    private readonly userService!: UserService;
 
     @Get()
     findAll() {
-        return this.service.findAll();
+        return this.userService.findAll();
     }
 }
 ...
 ```
-#### Supported
+### View
+> requires viewEngine middleware 
 ```ts
 ...
-const service = new UserService();
+@Controller("/user")
+class UserController extends BaseController {
+
+    @View("index")
+    @Get()
+    index() {
+        return {
+            title: "Welcome"
+        };
+    }
+}
+...
+```
+### Body Validator
+More doc see [class-validator](https://github.com/typestack/class-validator).
+@Validate(dtoClass, options?);
+```ts
+...
+import { 
+    BaseController, 
+    Controller, 
+    Validate, 
+    Post 
+} from "https://deno.land/x/dero@1.0.0/mod.ts";
+
+import { 
+    IsString, 
+    IsEmail 
+} from "https://deno.land/x/dero@1.0.0/validator.ts";
+
+// validate user
+class User {
+
+    @IsString()
+    username!: string;
+
+    @IsEmail()
+    email!: string;
+}
 
 @Controller("/user")
-class UserController {
+class UserController extends BaseController {
 
-    @Get()
-    findAll() {
-        return service.findAll();
+    // validate decorator
+    @Validate(User)
+    @Post()
+    save() {
+        return "Success save"
     }
 }
 ...
 ```
-## Config (if you want)
+
+## Config
 ```ts
 ...
-// this code is example
-dero.config({
-    useNativeHttp: boolean,                 /* default true */
-    useParseUrl: (req: HttpRequest) => any, /* default native */
-    useParseQuery: (qs: string) => any,     /* default native */
-});
+class Application extends Dero {
+    constructor() {
+        super({ 
+            nativeHttp: true,
+            env: "development",
+            parseQuery: qs.parse,
+            bodyLimit: {
+                json: "3mb",
+                urlencoded: "3mb"
+            }
+        })
+
+        // more
+    }
+}
 ...
 ```
 
 ## Middleware
 ```ts
-import { dero, Controller, Get, Wares } from "https://deno.land/x/dero@0.2.8/mod.ts";
-
+...
 @Controller("/hello")
-class HelloController {
+class HelloController extends BaseController {
 
     // inside handlers use @Wares
     @Wares(midd1, midd2)
@@ -300,37 +296,42 @@ class HelloController {
         return "hello";
     }
 }
-// global middleware with dero.use(...middlewares)
-dero.use(midd1, midd2);
 
-// the middleware available only HelloController
-dero.use({
-    wares: [midd1, midd2]
-    class: [HelloController]
-});
+class Application extends Dero {
+    constructor() {
+        super();
 
-await dero.listen(3000);
-```
-## HttpRequest
-```ts
-import { HttpRequest } from "https://deno.land/x/dero@0.2.8/mod.ts";
-```
-### Query
-Query http://localhost:3000/hello?name=john
-```ts
-...
-@Controller("/hello")
-class HelloController {
+        // global middleware with .use(...middlewares)
+        this.use(midd1, midd2);
 
-    @Get()
-    hello(req: HttpRequest) {
-        console.log(req.query);
-        return req.query.name;
+        // the middleware available only HelloController
+        this.use({
+            wares: [midd1, midd2]
+            class: [HelloController]
+        });
     }
 }
 ...
 ```
-### Params
+## HttpRequest
+```ts
+import { HttpRequest } from "https://deno.land/x/dero@1.0.0/mod.ts";
+```
+### request.query
+Query http://localhost:3000/hello?name=john
+```ts
+...
+@Controller("/hello")
+class HelloController extends BaseController {
+
+    @Get()
+    hello() {
+        return this.request.query;
+    }
+}
+...
+```
+### request.params
 Params example => http://localhost:3000/hello/1
 
 Standart params => /path/:id
@@ -343,83 +344,117 @@ All params      => /path/*
 ```ts
 ...
 @Controller("/hello")
-class HelloController {
+class HelloController extends BaseController {
 
     @Get("/:id")
-    hello(req: HttpRequest) {
-        console.log(req.params);
-        return req.params.id;
+    hello() {
+        const { id } = this.request.params;
+        return id;
     }
 
     @Get("/:id?")
-    helloOptional(req: HttpRequest) {
-        return req.params.id || 'no params';
+    helloOptional() {
+        return this.request.params.id || 'no params';
     }
 
     // only png and jpg extensions.
     @Get("/image/:title.(png|jpg)")
-    getImage(req: HttpRequest) {
-        return req.params.title;
+    getImage() {
+        const { title } = this.request.params;
+        return title;
     }
 
     @Get("/all/*")
-    getAllParams(req: HttpRequest) {
+    getAllParams() {
         // log: {"wild":["param1","param2"]}
-        return req.params || {};
+        return this.request.params || [];
     }
 }
 ...
 ```
-### Pond
-like req.respond, req.pond help sending body, status, headers.
-req.pond(body, { status, headers }); where body is string, json, Uint8Array, Deno.Reader, 
+### request.parsedBody
+output body but was parsed to json.
+### request.getBaseUrl
+get base url
+### request.pond
+like request.respond.
+```ts
+...
+    @Get()
+    hello() {
+        this.request.pond("hello", {
+            status: 200,
+            headers: new Headers()
+        })
+    }
+...
+```
+### request.getCookies
+get request cookies
+```ts
+...
+    @Get()
+    withCookies() {
+        const cookies = this.request.getCookies();
+        return cookies;
+    }
 
-### getBaseUrl
-function getBaseUrl() return base url as string.
-
+    @Get()
+    withCookiesDecode() {
+        const cookies = this.request.getCookies(true);
+        return cookies;
+    }
+...
+```
 ### All HttpRequest
 ```ts
-interface HttpRequest {
-    respond: (r: any) => Promise<void>;
-    pond: (body?: TBody | { [k: string]: any } | null, opts?: PondOptions) => Promise<void>;
-    proto: string;
-    url: string;
-    conn: Deno.Conn;
-    isSecure: boolean | undefined;
-    method: string;
-    headers: Headers;
-    body: Deno.Reader | null;
-    originalUrl: string;
-    params: { [k: string]: any };
-    _parsedUrl: { [k: string]: any };
-    path: string;
-    query: { [k: string]: any };
-    search: string | null;
-    getBaseUrl: () => string;
+class HttpRequest {
+    respond!: (r: any) => Promise<void>;
+    parsedBody!: { [k: string]: any };
+    pond!: (
+        body?: TBody | { [k: string]: any } | null,
+        opts?: PondOptions,
+    ) => Promise<void>;
+    getCookies!: () => Record<string, any>;
+    proto!: string;
+    url!: string;
+    conn!: Deno.Conn;
+    secure: boolean | undefined;
+    bodyUsed: boolean | undefined;
+    method!: string;
+    headers!: Headers;
+    body!: Deno.Reader | null;
+    originalUrl!: string;
+    params!: { [k: string]: any };
+    _parsedUrl!: { [k: string]: any };
+    path!: string;
+    query!: { [k: string]: any };
+    search!: string | null;
+    getBaseUrl!: () => string;
 };
 ```
 ## HttpResponse
 ```ts
-import { HttpResponse } from "https://deno.land/x/dero@0.2.8/mod.ts";
+import { HttpResponse } from "https://deno.land/x/dero@1.0.0/mod.ts";
 ```
-### Header
+### response.header
 header: (key?: object | string | undefined, value?: any) => HttpResponse | string | Headers;
 ```ts
 ...
 // key and value
-res.header("key1", "value1");
+response.header("key1", "value1");
 
 // with object
-res.header({ "key2": "value2" });
+response.header({ "key2": "value2" });
 
 // multiple header
-res.header({
+response.header({
     "key3": "value3",
     "key4": "value4"
 });
 
 // get header
-console.log(res.header());
+console.log(response.header());
 // => Headers {
 //         "key1":"value1",
 //         "key2":"value2",
@@ -428,12 +463,12 @@ console.log(res.header());
 //     }
 
 // get header by key
-console.log(res.header("key1"));
+console.log(response.header("key1"));
 // => value1
 
 // delete key1
-res.header().delete("key1");
-console.log(res.header());
+response.header().delete("key1");
+console.log(response.header());
 // => Headers {
 //         "key2":"value2",
 //         "key3":"value3",
@@ -441,7 +476,7 @@ console.log(res.header());
 //     }
 
 // convert to json object
-console.log(Object.fromEntries(res.header().entries()));
+console.log(Object.fromEntries(response.header().entries()));
 // => {
 //       "key2":"value2",
 //       "key3":"value3",
@@ -449,36 +484,38 @@ console.log(Object.fromEntries(res.header().entries()));
 //    }
 
 // reset header
-res.header(new Headers());
-console.log(res.header());
+response.header(new Headers());
+console.log(response.header());
 // => Headers { }
 ...
 @Controller("/hello")
-class HelloController {
+class HelloController extends BaseController {
 
     @Get()
-    hello(req: HttpRequest, res: HttpResponse) {
-        res.header({"content-type": "text/plain"}).body("Done");
+    hello() {
+        const res = this.response;
+        res.header("content-type", "text/html").body("<h1>Done</h1>");
     }
 }
 ...
 ```
-### Type
+### response.type
 Shorthand for res.header("Content-Type", yourContentType);
 ```ts
 ...
 @Controller("/hello")
-class HelloController {
+class HelloController extends BaseController {
 
     @Get()
-    hello(req: HttpRequest, res: HttpResponse) {
-        res.type("text/html").body("<h1>Done</h1>");
+    hello() {
+        const res = this.response;
+        res.type("html").body("<h1>Done</h1>");
     }
 }
 ...
 ```
 
-### Status
+### response.status
 status: (code?: number | undefined) => HttpResponse | number;
 ```ts
 ...
@@ -490,59 +527,181 @@ console.log(res.status());
 // => 201
 ...
 @Controller("/hello")
-class HelloController {
+class HelloController extends BaseController {
 
     @Post()
-    hello(req: HttpRequest, res: HttpResponse) {
+    hello() {
+        const res = this.response;
         res.status(201).body("Created");
     }
 }
 ...
 ```
-### Body
-body: (body?: json | string | Uint8Array | Deno.Reader) => Promise<void>;
+### response.body
+response.body: (body?: json | string | Uint8Array | Deno.Reader) => Promise<void>;
 ```ts
 ...
 @Controller("/hello")
-class HelloController {
+class HelloController extends BaseController {
 
     @Get()
-    hello(req: HttpRequest, res: HttpResponse) {
+    hello() {
+        const res = this.response;
         res.body(json | string | Uint8Array | Deno.Reader);
     }
 }
 ...
 ```
-### Return
-Mutate ruturning body.
+### response.json
+response.json: (jsonData) => Promise<void>;
+```ts
+...
+@Controller("/hello")
+class HelloController extends BaseController {
+
+    @Get()
+    hello() {
+        const res = this.response;
+        res.json({ name: "john" });
+    }
+}
+...
+```
+### response.file
+response.file: (pathfile: string, options?) => Promise<void>;
+```ts
+...
+@Controller("/hello")
+class HelloController extends BaseController {
+
+    @Get()
+    hello() {
+        this.response.file("path/to/file.txt");
+    }
+
+    @Get("/test")
+    hello2() {
+        this.response.file("path/to/file.txt", {
+            etag: true,
+            basedir: Deno.cwd() + "/myfolder"
+        });
+    }
+}
+...
+```
+### response.download
+response.download: (pathfile: string, options?) => Promise<void>;
+```ts
+...
+@Controller("/hello")
+class HelloController extends BaseController {
+
+    @Get()
+    hello() {
+        this.response.download("path/to/file.txt");
+    }
+
+    @Get("/test")
+    hello2() {
+        this.response.download("path/to/file.txt", {
+            filename: "myCustomFileName.txt",
+            basedir: Deno.cwd() + "/myfolder"
+        });
+    }
+}
+...
+```
+### response.cookie
+response.cookie: (name, value, options?) => this;
+```ts
+...
+@Controller("/hello")
+class HelloController extends BaseController {
+
+    @Get()
+    hello() {
+        const res = this.response;
+        res.cookie("session", "admin", { encode: true, maxAge: 20000 }).send("hello");
+    }
+
+    @Get("/home")
+    home() {
+        const req = this.request;
+        res.send(req.getCookies());
+
+        // decode if encode true
+        res.send(req.getCookies(true));
+    }
+}
+...
+```
+### response.clearCookie
+response.clearCookie: (name) => void;
+```ts
+...
+@Controller("/hello")
+class HelloController extends BaseController {
+
+    @Get()
+    hello() {
+        const res = this.response;
+        res.clearCookie("session");
+        res.send("hello");
+    }
+}
+...
+```
+### response.redirect
+response.redirect: (url, status?) => Promise<void>;
+```ts
+...
+@Controller("/hello")
+class HelloController extends BaseController {
+
+    @Get()
+    hello() {
+        this.response.send("Hello")
+    }
+
+    @Get("/redirect")
+    redirect() {
+        this.response.redirect("/hello")
+    }
+}
+...
+```
+### response.view
+response.view: (pathfile, params, ...args) => Promise<void>
+> requires viewEngine middleware 
+```ts
+...
+@Controller("/hello")
+class HelloController extends BaseController {
+
+    @Get()
+    hello() {
+        this.response.view("index", {
+            name: "john"
+        })
+    }
+
+}
+...
+```
+### response.return 
+Mutate ruturning body midlleware.
 > note: this is example using React as template engine. 
 ```tsx
-// filename server.tsx
-import { dero } from "https://deno.land/x/dero@0.2.8/mod.ts";
+// server.tsx
+...
 import * as React from "https://jspm.dev/react@17.0.2";
 import * as ReactDOMServer from "https://jspm.dev/react-dom@17.0.2/server";
 
-declare global {
-    namespace JSX {
-        interface IntrinsicElements {
-            [k: string]: any;
-        }
-    }
-}
+@Controller("/hello")
+class HelloController extends BaseController {
 
-dero
-    .use((req, res, next) => {
-        // push logic and mutate body in middleware.
-        res.return.push((body) => {
-            if (React.isValidElement(body)) {
-                res.type("text/html");
-                return ReactDOMServer.renderToStaticMarkup(body);
-            }
-            return;
-        });
-        next();
-    })
-    .get("/hello", (req, res) => {
+    @Get()
+    hello() {
         const nums = [1, 2, 3, 4];
         return (
             <div>
@@ -550,10 +709,64 @@ dero
                 {nums.map(el => <p key={el}>{el}</p>)}
             </div>
         )
-    })
-    .listen(3000)
-```
+    }
+}
 
+class Application extends Dero {
+    constructor() {
+        super();
+        this.use((req, res, next) => {
+            // push logic and mutate body in middleware.
+            res.return.push((body) => {
+                if (React.isValidElement(body)) {
+                    res.type("html");
+                    return ReactDOMServer.renderToStaticMarkup(body);
+                }
+                return;
+            });
+            next();
+        });
+        this.use({ class: [UserController] });
+    }
+}
+ 
+await new Application().listen(3000, () => {
+    console.log("Running on port 3000")
+})
+...
+```
+### All HttpResponse
+```ts
+class HttpResponse {
+  locals: any;
+  opts!: PondOptions;
+  header!: (
+    key?: { [k: string]: any } | string,
+    value?: any,
+  ) => this | (this & Headers) | (this & string);
+  status!: (code?: number) => this | (this & number);
+  type!: (contentType: string) => this;
+  body!: (body?: TBody | { [k: string]: any } | null) => Promise<void>;
+  json!: (body: { [k: string]: any } | null) => Promise<void>;
+  file!: (
+    pathfile: string,
+    opts?: { etag?: boolean; basedir?: string },
+  ) => Promise<void>;
+  download!: (
+    pathfile: string,
+    opts?: { basedir?: string; filename?: string },
+  ) => Promise<void>;
+  redirect!: (url: string, status?: number) => Promise<void>;
+  clearCookie!: (name: string) => void;
+  cookie!: (name: string, value: any, opts?: Cookie) => this;
+  view!: (
+    name: string,
+    params?: Record<string, any>,
+    ...args: any
+  ) => Promise<void>;
+  return!: ((body: any) => any)[];
+}
+```
 ## Next
 Next Function is a function to next step handler (on middleware).
 ### example next 
@@ -567,19 +780,29 @@ Next Function is a function to next step handler (on middleware).
 })
 ...
 ```
+## Classic
+```ts
+import { dero } from "https://deno.land/x/dero@1.0.0/mod.ts";
+
+dero.get("/", (req, res) => {
+    res.body("Hello World")
+})
+
+dero.listen(3000);
+```
 ## Router
 Dero support classic router.
 ```ts
 ...
-import { dero, Router } from "https://deno.land/x/dero@0.2.8/mod.ts";
+import { Dero, Router } from "https://deno.land/x/dero@1.0.0/mod.ts";
 
+const app = new Dero();
 const router = new Router();
 router.get("/hello", (req, res) => {
     res.body("hello");
 })
-dero
-    .use({ routes: [router] })
-    .listen(3000);
+
+app.use({ routes: [router] }).listen(3000);
 
 // or with middleware and prefix
 // dero.use({
@@ -618,15 +841,77 @@ dero
 ```ts
 ...
 // error handling
-dero.use((err: any, req: HttpRequest, res: HttpResponse, next: NextFunction) => {
+this.onError((err, req, res, next) => {
     res.status(err.code || 500).body({ message: err.message });
 });
 
 // not found error handling
-dero.use("*", (req, res, next) => {
+this.on404((req, res, next) => {
     res.status(404).body({ message: `Url ${req.url} not found` });
 });
 ...
+```
+## throw error
+```ts
+...
+import { BadRequestError } from "https://deno.land/x/dero@1.0.0/error.ts";
+
+@Controller("/hello")
+class HelloController extends BaseController {
+
+    @Get()
+    hello() {
+        const data = findData();
+        if (!data) {
+            throw new BadRequestError("Bad data")
+        }
+        return data;
+    }
+
+}
+...
+```
+## Template engine
+```ts
+import { 
+    Dero, 
+    BaseController, 
+    Controller, 
+    Get, 
+    viewEngine
+} from "https://deno.land/x/dero@1.0.0/mod.ts";
+
+import nunjucks from "https://deno.land/x/nunjucks@3.2.3/mod.js";
+
+@Controller("/user")
+class UserController extends BaseController {
+
+    @Get()
+    findAll() {
+        this.response.view("index", {
+            param: "example"
+        })
+    }
+
+}
+
+class Application extends Dero {
+    constructor() {
+        super();
+
+        // nunjucks configure set basedir views.
+        nunjucks.configure("views", {/* other config */});
+
+        this.use(viewEngine(nunjucks.render));
+
+        this.use({ class: [UserController] });
+    }
+}
+
+// run 
+await new Application().listen(3000, () => {
+    console.log("Running on port 3000")
+})
 ```
 ## The role of dero.use
 ```ts
