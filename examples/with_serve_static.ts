@@ -1,11 +1,10 @@
 import { Dero, staticFiles } from "./../mod.ts";
 
-
 class App extends Dero {
-    constructor() {
-        super();
-        this.use("/public", staticFiles("assets"))
-    }
+  constructor() {
+    super();
+    this.use("/public", staticFiles("assets"));
+  }
 }
 
 await new App().listen(3000);

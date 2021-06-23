@@ -1,25 +1,18 @@
-import {
-    Dero,
-    Controller,
-    Get,
-    BaseController
-} from "./../mod.ts";
+import { BaseController, Controller, Dero, Get } from "./../mod.ts";
 
 @Controller("/download")
 class DownloadController extends BaseController {
-
-    @Get()
-    download() {
-        this.response.download("assets/style.css")
-    }
-
+  @Get()
+  download() {
+    this.response.download("assets/style.css");
+  }
 }
 
 class App extends Dero {
-    constructor() {
-        super();
-        this.use({ class: [DownloadController] });
-    }
+  constructor() {
+    super();
+    this.use({ class: [DownloadController] });
+  }
 }
 
 await new App().listen(3000);

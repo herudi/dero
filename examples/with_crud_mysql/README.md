@@ -1,4 +1,5 @@
 ## Dero with basic CRUD MySQL.
+
 This is a simple crud dero featuring mysql database.
 
 ### Create database and table
@@ -17,11 +18,13 @@ ENGINE=InnoDB DEFAULT CHARSET=latin1;
 ```
 
 ### Run deno
+
 ```bash
 deno run --allow-net --allow-read app.ts
 ```
 
 ### Rest APIs
+
 ```bash
 GET     /api/v1/items
 GET     /api/v1/items/search

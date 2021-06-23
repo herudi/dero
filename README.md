@@ -2,7 +2,7 @@
 Fast web framework for Deno (support native HTTP/2 [Hyper](https://hyper.rs) and std/http).
 
 [![License](https://img.shields.io/:license-mit-blue.svg)](http://badges.mit-license.org)
-[![deno.land](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Flatest-version%2Fx%2Fdero@1.0.0%2Fmod.ts)](https://deno.land/x/dero)
+[![deno.land](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Flatest-version%2Fx%2Fdero@1.0.1%2Fmod.ts)](https://deno.land/x/dero)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](http://makeapullrequest.com)
 ![deps badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fdep-count%2Fhttps%2Fdeno.land%2Fx%2Fdero%2Fmod.ts)
 ![cache badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fcache-size%2Fhttps%2Fdeno.land%2Fx%2Fdero%2Fmod.ts)
@@ -18,56 +18,37 @@ Fast web framework for Deno (support native HTTP/2 [Hyper](https://hyper.rs) and
 ## Installation
 ### deno.land
 ```ts
-import {...} from "https://deno.land/x/dero@1.0.0/mod.ts";
+import {...} from "https://deno.land/x/dero@1.0.1/mod.ts";
 ```
 ### nest.land
 ```ts
-import {...} from "https://x.nest.land/dero_framework@1.0.0/mod.ts";
+import {...} from "https://x.nest.land/dero_framework@1.0.1/mod.ts";
 ```
 
-## Example
+## Usage
 ```ts
 import { 
     Dero, 
     BaseController, 
     Controller, 
-    Inject, 
     Get
-} from "https://deno.land/x/dero@1.0.0/mod.ts";
+} from "https://deno.land/x/dero@1.0.1/mod.ts";
 
-// service
-class UserService {
-    async findAll() {
-        // const data = await User.findAll();
-        return { status: 200, data: "hay" };
-    }
-
-    async findById(id: number) {
-        // const data = await User.findId(id);
-        return { status: 200, data: "hay " + id };
-    }
-}
-
-// controller
 @Controller("/user")
 class UserController extends BaseController {
 
-    @Inject(UserService)
-    private readonly userService!: UserService;
-
     @Get()
-    findAll() {
-        return this.userService.findAll();
+    getUser() {
+        return "Hello";
     }
 
-    @Get("/:id")
-    findById() {
-        const { id } = this.request.params;
-        return this.userService.findById(Number(id));
+    @Get("/:name")
+    getUserByName() {
+        const { name } = this.request.params;
+        return name;
     }
 }
 
-// application
 class Application extends Dero {
     constructor() {
         super();
@@ -75,7 +56,6 @@ class Application extends Dero {
     }
 }
 
-// listen 
 await new Application().listen(3000, () => {
     console.log("Running on port 3000")
 })
@@ -128,15 +108,6 @@ class HelloController extends BaseController {
     save() {
         return "Created";
     }
-    
-    @Status((req, res) => {
-        // logic here
-        return 200;
-    })
-    @Put()
-    update() {
-        return "Updated";
-    }
 }
 ...
 ```
@@ -151,15 +122,6 @@ class HelloController extends BaseController {
     @Get()
     hello() {
         return "<h1>Hello</h1>";
-    }
-
-    @Header((req, res) => {
-        let type = req.url.includes(".css") ? "text/css" : "text/plain";
-        return { "Content-Type": type };
-    })
-    @Get()
-    hello2() {
-        this.response.file("./path/to/file.css");
     }
 }
 ...
@@ -247,12 +209,12 @@ import {
     Controller, 
     Validate, 
     Post 
-} from "https://deno.land/x/dero@1.0.0/mod.ts";
+} from "https://deno.land/x/dero@1.0.1/mod.ts";
 
 import { 
     IsString, 
     IsEmail 
-} from "https://deno.land/x/dero@1.0.0/validator.ts";
+} from "https://deno.land/x/dero@1.0.1/validator.ts";
 
 // validate user
 class User {
@@ -330,7 +292,7 @@ class Application extends Dero {
 ```
 ## HttpRequest
 ```ts
-import { HttpRequest } from "https://deno.land/x/dero@1.0.0/mod.ts";
+import { HttpRequest } from "https://deno.land/x/dero@1.0.1/mod.ts";
 ```
 ### request.query
 Query http://localhost:3000/hello?name=john
@@ -450,7 +412,7 @@ class HttpRequest {
 ```
 ## HttpResponse
 ```ts
-import { HttpResponse } from "https://deno.land/x/dero@1.0.0/mod.ts";
+import { HttpResponse } from "https://deno.land/x/dero@1.0.1/mod.ts";
 ```
 ### response.header
 header: (key?: object | string | undefined, value?: any) => HttpResponse | string | Headers;
@@ -797,7 +759,7 @@ Next Function is a function to next step handler (on middleware).
 ```
 ## Classic
 ```ts
-import { dero } from "https://deno.land/x/dero@1.0.0/mod.ts";
+import { dero } from "https://deno.land/x/dero@1.0.1/mod.ts";
 
 dero.get("/", (req, res) => {
     res.body("Hello World")
@@ -809,7 +771,7 @@ dero.listen(3000);
 Dero support classic router.
 ```ts
 ...
-import { Dero, Router } from "https://deno.land/x/dero@1.0.0/mod.ts";
+import { Dero, Router } from "https://deno.land/x/dero@1.0.1/mod.ts";
 
 const app = new Dero();
 const router = new Router();
@@ -869,7 +831,7 @@ this.on404((req, res, next) => {
 ## throw error
 ```ts
 ...
-import { BadRequestError } from "https://deno.land/x/dero@1.0.0/error.ts";
+import { BadRequestError } from "https://deno.land/x/dero@1.0.1/error.ts";
 
 @Controller("/hello")
 class HelloController extends BaseController {
@@ -894,18 +856,19 @@ import {
     Controller, 
     Get, 
     viewEngine
-} from "https://deno.land/x/dero@1.0.0/mod.ts";
+} from "https://deno.land/x/dero@1.0.1/mod.ts";
 
 import nunjucks from "https://deno.land/x/nunjucks@3.2.3/mod.js";
 
 @Controller("/user")
 class UserController extends BaseController {
 
+    @View("index")
     @Get()
     findAll() {
-        this.response.view("index", {
+        return {
             param: "example"
-        })
+        }
     }
 
 }
