@@ -61,12 +61,13 @@ export function response(
     if (typeof body === "object") {
       if (
         body instanceof Uint8Array ||
+        body instanceof ReadableStream ||
         typeof (body as Deno.Reader).read === "function"
       ) {
         return this.respond({ body: body as TBody, ...opts });
       }
       if (res.___view) {
-        return res.view(res.___view, body as any)
+        return res.view(res.___view, body as any);
       }
       body = JSON.stringify(body);
       opts.headers = opts.headers || new Headers();

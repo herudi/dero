@@ -165,5 +165,5 @@ export class BaseController<
   request!: Req;
   response!: Res;
   next!: NextFunction;
-  [k: string]: any;
+  [k: string]: any
 }

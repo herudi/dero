@@ -9,7 +9,7 @@ import {
 
 export function validate(_class: Class, opts: TValidatorOptions = {}): Handler {
   opts.throw = opts.throw || UnprocessableEntityError;
-  opts.target = opts.target || 'parsedBody';
+  opts.target = opts.target || "parsedBody";
   return async (req, res, next) => {
     let obj = new _class();
     Object.assign(obj, req[opts.target as string]);
