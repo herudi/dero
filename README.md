@@ -636,16 +636,16 @@ class HelloController extends BaseController {
     @Get()
     hello() {
         const res = this.response;
-        res.cookie("session", "admin", { encode: true, maxAge: 20000 }).send("hello");
+        res.cookie("session", "admin", { encode: true, maxAge: 20000 }).body("hello");
     }
 
     @Get("/home")
     home() {
         const req = this.request;
-        res.send(req.getCookies());
+        res.body(req.getCookies());
 
         // decode if encode true
-        res.send(req.getCookies(true));
+        res.body(req.getCookies(true));
     }
 }
 ...
@@ -661,7 +661,7 @@ class HelloController extends BaseController {
     hello() {
         const res = this.response;
         res.clearCookie("session");
-        res.send("hello");
+        res.body("hello");
     }
 }
 ...
@@ -675,7 +675,7 @@ class HelloController extends BaseController {
 
     @Get()
     hello() {
-        this.response.send("Hello")
+        this.response.body("Hello")
     }
 
     @Get("/redirect")
