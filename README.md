@@ -6,7 +6,7 @@ Fast web framework for Deno (support native HTTP/2 [Hyper](https://hyper.rs) and
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](http://makeapullrequest.com)
 ![deps badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fdep-count%2Fhttps%2Fdeno.land%2Fx%2Fdero%2Fmod.ts)
 ![cache badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fcache-size%2Fhttps%2Fdeno.land%2Fx%2Fdero%2Fmod.ts)
-[![nest.land](https://nest.land/badge.svg)](https://nest.land/package/dero)
+[![nest.land](https://nest.land/badge.svg)](https://nest.land/package/dero_framework)
 
 ## Features
 - Native HTTP/2 support.
