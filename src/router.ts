@@ -1,4 +1,3 @@
-import { parseObject } from "./deps.ts";
 import { HttpRequest } from "./http_request.ts";
 import { HttpResponse } from "./http_response.ts";
 import { Handler, Handlers } from "./types.ts";
@@ -134,7 +133,6 @@ export default class Router<
           handlers = this.#addMidd(this.midds, notFound, [], url, this.pmidds);
         }
       }
-      params = parseObject(params);
     }
     return { params, handlers };
   }

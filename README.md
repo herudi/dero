@@ -2,7 +2,7 @@
 Fast web framework for Deno (support native HTTP/2 [Hyper](https://hyper.rs) and std/http).
 
 [![License](https://img.shields.io/:license-mit-blue.svg)](http://badges.mit-license.org)
-[![deno.land](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Flatest-version%2Fx%2Fdero@1.0.1%2Fmod.ts)](https://deno.land/x/dero)
+[![deno.land](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Flatest-version%2Fx%2Fdero@1.0.2%2Fmod.ts)](https://deno.land/x/dero)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](http://makeapullrequest.com)
 ![deps badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fdep-count%2Fhttps%2Fdeno.land%2Fx%2Fdero%2Fmod.ts)
 ![cache badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fcache-size%2Fhttps%2Fdeno.land%2Fx%2Fdero%2Fmod.ts)
@@ -18,11 +18,11 @@ Fast web framework for Deno (support native HTTP/2 [Hyper](https://hyper.rs) and
 ## Installation
 ### deno.land
 ```ts
-import {...} from "https://deno.land/x/dero@1.0.1/mod.ts";
+import {...} from "https://deno.land/x/dero@1.0.2/mod.ts";
 ```
 ### nest.land
 ```ts
-import {...} from "https://x.nest.land/dero_framework@1.0.1/mod.ts";
+import {...} from "https://x.nest.land/dero_framework@1.0.2/mod.ts";
 ```
 
 ## Usage
@@ -32,7 +32,7 @@ import {
     BaseController, 
     Controller, 
     Get
-} from "https://deno.land/x/dero@1.0.1/mod.ts";
+} from "https://deno.land/x/dero@1.0.2/mod.ts";
 
 @Controller("/user")
 class UserController extends BaseController {
@@ -209,12 +209,12 @@ import {
     Controller, 
     Validate, 
     Post 
-} from "https://deno.land/x/dero@1.0.1/mod.ts";
+} from "https://deno.land/x/dero@1.0.2/mod.ts";
 
 import { 
     IsString, 
     IsEmail 
-} from "https://deno.land/x/dero@1.0.1/validator.ts";
+} from "https://deno.land/x/dero@1.0.2/validator.ts";
 
 // validate user
 class User {
@@ -292,7 +292,7 @@ class Application extends Dero {
 ```
 ## HttpRequest
 ```ts
-import { HttpRequest } from "https://deno.land/x/dero@1.0.1/mod.ts";
+import { HttpRequest } from "https://deno.land/x/dero@1.0.2/mod.ts";
 ```
 ### request.query
 Query http://localhost:3000/hello?name=john
@@ -412,7 +412,7 @@ class HttpRequest {
 ```
 ## HttpResponse
 ```ts
-import { HttpResponse } from "https://deno.land/x/dero@1.0.1/mod.ts";
+import { HttpResponse } from "https://deno.land/x/dero@1.0.2/mod.ts";
 ```
 ### response.header
 header: (key?: object | string | undefined, value?: any) => HttpResponse | string | Headers;
@@ -759,7 +759,7 @@ Next Function is a function to next step handler (on middleware).
 ```
 ## Classic
 ```ts
-import { dero } from "https://deno.land/x/dero@1.0.1/mod.ts";
+import { dero } from "https://deno.land/x/dero@1.0.2/mod.ts";
 
 dero.get("/", (req, res) => {
     res.body("Hello World")
@@ -771,7 +771,7 @@ dero.listen(3000);
 Dero support classic router.
 ```ts
 ...
-import { Dero, Router } from "https://deno.land/x/dero@1.0.1/mod.ts";
+import { Dero, Router } from "https://deno.land/x/dero@1.0.2/mod.ts";
 
 const app = new Dero();
 const router = new Router();
@@ -831,7 +831,7 @@ this.on404((req, res, next) => {
 ## throw error
 ```ts
 ...
-import { BadRequestError } from "https://deno.land/x/dero@1.0.1/error.ts";
+import { BadRequestError } from "https://deno.land/x/dero@1.0.2/error.ts";
 
 @Controller("/hello")
 class HelloController extends BaseController {
@@ -856,7 +856,7 @@ import {
     Controller, 
     Get, 
     viewEngine
-} from "https://deno.land/x/dero@1.0.1/mod.ts";
+} from "https://deno.land/x/dero@1.0.2/mod.ts";
 
 import nunjucks from "https://deno.land/x/nunjucks@3.2.3/mod.js";
 

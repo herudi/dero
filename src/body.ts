@@ -1,5 +1,5 @@
 import { BadRequestError } from "../error.ts";
-import { parseObject, readAll } from "./deps.ts";
+import { readAll } from "./deps.ts";
 import { HttpRequest } from "./http_request.ts";
 import { NextFunction, TBodyLimit } from "./types.ts";
 import { toBytes } from "./utils.ts";
@@ -34,8 +34,7 @@ export async function withBody(
     ) {
       try {
         const body = await verifyBody(req.body, opts?.json || "3mb");
-        const obj = parse(body);
-        req.parsedBody = parseObject(obj);
+        req.parsedBody = parse(body);
         req.bodyUsed = req.bodyUsed !== false;
       } catch (error) {
         return next(error);

@@ -17,4 +17,3 @@ export {
 } from "https://deno.land/std@0.99.0/http/cookie.ts";
 
 export type { Cookie } from "https://deno.land/std@0.99.0/http/cookie.ts";
-export { parseObject } from "https://esm.sh/query-types?no-check";

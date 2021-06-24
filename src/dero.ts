@@ -6,13 +6,7 @@ import {
   TBodyLimit,
 } from "./types.ts";
 import { findFns, modPath, myParseQuery, toPathx } from "./utils.ts";
-import {
-  parseObject,
-  readerFromStreamReader,
-  serve,
-  Server,
-  serveTLS,
-} from "./deps.ts";
+import { readerFromStreamReader, serve, Server, serveTLS } from "./deps.ts";
 import Router from "./router.ts";
 import { getError, NotFoundError } from "../error.ts";
 import { withBody } from "./body.ts";
@@ -281,9 +275,7 @@ export class Dero<
     req.originalUrl = req.originalUrl || req.url;
     req.params = obj.params;
     req.path = req._parsedUrl.pathname;
-    req.query = req._parsedUrl.query
-      ? parseObject(this.#parseQuery(req._parsedUrl.query))
-      : {};
+    req.query = this.#parseQuery(req._parsedUrl.query);
     req.search = req._parsedUrl.search;
     // build request response
     response(req, res, next);
