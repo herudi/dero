@@ -269,7 +269,6 @@ export class Dero<
     res.return = [];
     res.locals = {};
     res.opts = {};
-
     // init req
     req.parsedBody = {};
     req.originalUrl = req.originalUrl || req.url;
@@ -279,6 +278,10 @@ export class Dero<
     req.search = req._parsedUrl.search;
     // build request response
     response(req, res, next);
+    // don't send body if GET or HEAD
+    if (req.method == "GET" || req.method == "HEAD") {
+      return next();
+    }
     // next with body
     withBody(req, next, this.#parseQuery, this.#bodyLimit);
   }
