@@ -1,13 +1,45 @@
-import {
-  contentType,
-  Cookie,
-  deleteCookie,
-  getCookies,
-  setCookie,
-} from "./deps.ts";
+import { contentType, setCookie } from "./deps.ts";
 import { HttpRequest } from "./http_request.ts";
-import { NextFunction, PondOptions, TBody } from "./types.ts";
+import { Cookie, NextFunction, PondOptions, TBody } from "./types.ts";
 import { existStat, JSON_TYPE_CHARSET } from "./utils.ts";
+
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+export function decodeCookies(str: string) {
+  try {
+    str = str.substring(2);
+    const dec = atob(str);
+    const uint = Uint8Array.from(dec.split(",") as any);
+    const ret = decoder.decode(uint) || str;
+    if (ret !== str) {
+      if (ret.startsWith("j:{") || ret.startsWith("j:[")) {
+        const json = ret.substring(2);
+        return JSON.parse(json);
+      }
+    }
+    return decoder.decode(uint) || str;
+  } catch (error) {
+    return str;
+  }
+}
+
+function getReqCookies(headers: Headers, decode?: boolean, i = 0) {
+  const str = headers.get("Cookie");
+  if (str === null) return {};
+  const ret = {} as Record<string, string>;
+  const arr = str.split(";");
+  const len = arr.length;
+  while (i < len) {
+    const [key, ...oriVal] = arr[i].split("=");
+    let val = oriVal.join("=");
+    ret[key.trim()] = decode
+      ? (val.startsWith("E:") ? decodeCookies(val) : val)
+      : val;
+    i++;
+  }
+  return ret;
+}
 
 export class HttpResponse {
   locals: any;
@@ -20,6 +52,10 @@ export class HttpResponse {
   type!: (contentType: string) => this;
   body!: (body?: TBody | { [k: string]: any } | null) => Promise<void>;
   json!: (body: { [k: string]: any } | null) => Promise<void>;
+  jsonp!: (
+    body: { [k: string]: any } | null,
+    callbackName?: string,
+  ) => Promise<void>;
   file!: (
     pathfile: string,
     opts?: { etag?: boolean; basedir?: string },
@@ -30,7 +66,11 @@ export class HttpResponse {
   ) => Promise<void>;
   redirect!: (url: string, status?: number) => Promise<void>;
   clearCookie!: (name: string) => void;
-  cookie!: (name: string, value: any, opts?: Cookie) => this;
+  cookie!: (
+    name: string,
+    value: any,
+    opts?: Cookie,
+  ) => this;
   view!: (
     name: string,
     params?: Record<string, any>,
@@ -45,7 +85,7 @@ export function response(
   res: HttpResponse,
   next: NextFunction,
 ) {
-  req.getCookies = () => getCookies({ headers: req.headers });
+  req.getCookies = (b) => getReqCookies(req.headers, b);
   req.pond = function (body, opts = res.opts) {
     if (res.return.length) {
       let len = res.return.length, i = 0, ret;
@@ -173,21 +213,42 @@ export function response(
   res.redirect = function (url, status) {
     return this.header("Location", url).status(status || 302).body();
   };
-  res.cookie = function (name, value, opts) {
+  res.cookie = function (name, value, opts = {}) {
     value = typeof value === "object"
       ? "j:" + JSON.stringify(value)
       : String(value);
-    opts = opts || { name, value };
     opts.httpOnly = opts.httpOnly !== false;
     opts.path = opts.path || "/";
     if (opts.maxAge) {
       opts.expires = new Date(Date.now() + opts.maxAge);
       opts.maxAge /= 1000;
     }
-    setCookie({ headers: this.header() as Headers }, opts);
+    opts.encode = !!opts.encode;
+    if (opts.encode) {
+      value = "E:" + btoa(encoder.encode(value).toString());
+    }
+    opts.name = name;
+    opts.value = value;
+    setCookie({ headers: this.header() as Headers }, opts as any);
     return this;
   };
   res.clearCookie = function (name) {
-    deleteCookie({ headers: this.header() as Headers }, name);
+    setCookie({ headers: this.header() as Headers }, {
+      name: name,
+      value: "",
+      expires: new Date(0),
+    });
+  };
+  res.jsonp = function (body, callback) {
+    callback = callback || "callback";
+    let data = JSON.stringify(body);
+    this.header({
+      "X-Content-Type-Options": "nosniff",
+      "Content-Type": "text/javascript",
+    });
+    callback = callback.replace(/[^\[\]\w$.]/g, "");
+    data = data.replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
+    data = callback + "(" + data + ");";
+    return this.body(data);
   };
 }

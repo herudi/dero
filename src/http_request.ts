@@ -7,7 +7,7 @@ export class HttpRequest {
     body?: TBody | { [k: string]: any } | null,
     opts?: PondOptions,
   ) => Promise<void>;
-  getCookies!: () => Record<string, any>;
+  getCookies!: (decode?: boolean) => Record<string, any>;
   proto!: string;
   url!: string;
   conn!: Deno.Conn;

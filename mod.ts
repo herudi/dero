@@ -7,8 +7,8 @@ export type {
     TBody
 } from "./src/types.ts";
 
-export { HttpRequest } from "./src/http_request.ts"
-export { HttpResponse } from "./src/http_response.ts"
+export { HttpRequest } from "./src/http_request.ts";
+export { HttpResponse, decodeCookies } from "./src/http_response.ts";
 
 export { Dero, dero } from "./src/dero.ts";
 export { viewEngine, validate } from "./src/wares.ts";

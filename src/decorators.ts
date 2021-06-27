@@ -93,21 +93,29 @@ export function Wares<
     return des;
   };
 }
-export function View(name: string | TString) {
+export function View<
+  Req extends HttpRequest = HttpRequest,
+  Res extends HttpResponse = HttpResponse,
+>(name: string | TString<Req, Res>) {
   return (target: any, prop: string, des: PropertyDescriptor) => {
     const viewFn: Handler = (req, res, next) => {
-      res.___view = typeof name === "function" ? name(req, res, next) : name;
+      res.___view = typeof name === "function"
+        ? name(req as Req, res as Res, next)
+        : name;
       next();
     };
     target["methods"] = joinTargetMethod(target, prop, [viewFn]);
     return des;
   };
 }
-export function Type(name: string | TString) {
+export function Type<
+  Req extends HttpRequest = HttpRequest,
+  Res extends HttpResponse = HttpResponse,
+>(name: string | TString<Req, Res>) {
   return (target: any, prop: string, des: PropertyDescriptor) => {
     const typeFn: Handler = (req, res, next) => {
       res.type(
-        typeof name === "function" ? name(req, res, next) : name,
+        typeof name === "function" ? name(req as Req, res as Res, next) : name,
       );
       next();
     };
@@ -115,11 +123,16 @@ export function Type(name: string | TString) {
     return des;
   };
 }
-export function Status(status: number | TStatus) {
+export function Status<
+  Req extends HttpRequest = HttpRequest,
+  Res extends HttpResponse = HttpResponse,
+>(status: number | TStatus<Req, Res>) {
   return (target: any, prop: string, des: PropertyDescriptor) => {
     const statusFn: Handler = (req, res, next) => {
       res.status(
-        typeof status === "function" ? status(req, res, next) : status,
+        typeof status === "function"
+          ? status(req as Req, res as Res, next)
+          : status,
       );
       next();
     };
@@ -127,11 +140,16 @@ export function Status(status: number | TStatus) {
     return des;
   };
 }
-export function Header(header: { [k: string]: any } | THeaders) {
+export function Header<
+  Req extends HttpRequest = HttpRequest,
+  Res extends HttpResponse = HttpResponse,
+>(header: { [k: string]: any } | THeaders<Req, Res>) {
   return (target: any, prop: string, des: PropertyDescriptor) => {
     const headerFn: Handler = (req, res, next) => {
       res.header(
-        typeof header === "function" ? header(req, res, next) : header,
+        typeof header === "function"
+          ? header(req as Req, res as Res, next)
+          : header,
       );
       next();
     };

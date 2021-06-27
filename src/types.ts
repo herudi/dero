@@ -45,3 +45,17 @@ export type ViewEngineOptions = {
   basedir?: string;
   extname?: string;
 };
+
+export interface Cookie {
+  encode?: boolean;
+  name?: string;
+  value?: string;
+  expires?: Date;
+  maxAge?: number;
+  domain?: string;
+  path?: string;
+  secure?: boolean;
+  httpOnly?: boolean;
+  sameSite?: "Strict" | "Lax" | "None";
+  unparsed?: string[];
+}
