@@ -187,9 +187,15 @@ export class Dero<
     this.lookup(req as unknown as Req);
     await rw;
   }
-  deploy(fn?: (event: any) => void) {
-    let handler = fn || this.handleRequestEvent;
-    addEventListener('fetch', handler);
+  deploy() {
+    let _fetch = () => {
+      return {
+        handleEvent: async (event: any) => {
+          await this.handleRequestEvent(event);
+        }
+      }
+    };
+    addEventListener('fetch', _fetch());
   }
   onError(
     fn: (
