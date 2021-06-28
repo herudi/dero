@@ -23,7 +23,7 @@ type DeroOpts = {
 export class Dero<
   Req extends HttpRequest = HttpRequest,
   Res extends HttpResponse = HttpResponse,
-> extends Router<Req, Res> {
+  > extends Router<Req, Res> {
   #nativeHttp: boolean;
   #parseQuery: (...args: any) => any;
   #env: string;
@@ -37,7 +37,6 @@ export class Dero<
     this.#nativeHttp = nativeHttp !== false;
     this.#env = env || "development";
     this.#parseQuery = parseQuery || myParseQuery;
-    this.fetchEventHandler = this.fetchEventHandler.bind(this);
   }
   #wrapError = (handler: Function) => {
     return (
@@ -108,7 +107,7 @@ export class Dero<
         this.lookup(req as unknown as Req);
         await rw;
       }
-    } catch (_e) {}
+    } catch (_e) { }
   };
   #onError = (err: any, req: Req, res: Res, next: NextFunction) => {
     let obj = getError(err, this.#env === "development");
@@ -286,35 +285,35 @@ export class Dero<
     // next with body
     withBody(req, next, this.#parseQuery, this.#bodyLimit);
   }
-  fetchEventHandler() {
-    return {
-      handleEvent: async ({ request, respondWith }: any) => {
-        let readerBody: Deno.Reader | null = null;
-        if (request.body) {
-          readerBody = readerFromStreamReader(request.body.getReader());
-        }
-        let resp: (res: Response) => void;
-        const promise = new Promise<Response>((ok) => {
-          resp = ok;
-        });
-        const rw = respondWith(promise);
-        let req = {
-          conn: {},
-          proto: "HTTP/1.1",
-          secure: true,
-          bodyUsed: request.bodyUsed,
-          method: request.method,
-          __url: request.url,
-          url: this.#findUrl(request.url),
-          body: readerBody,
-          headers: request.headers,
-          respond: ({ body, status, headers }: any) =>
-            resp!(new Response(body, { status, headers })),
-        };
-        this.lookup(req as unknown as Req);
-        await rw;
-      },
+  async handleFetch(event: any) {
+    let readerBody: Deno.Reader | null = null;
+    let request = event.request;
+    if (request.body) {
+      readerBody = readerFromStreamReader(request.body.getReader());
+    }
+    let resp: (res: Response) => void;
+    const promise = new Promise<Response>((ok) => {
+      resp = ok;
+    });
+    const rw = event.respondWith(promise);
+    let req = {
+      conn: {},
+      proto: "HTTP/1.1",
+      secure: true,
+      bodyUsed: request.bodyUsed,
+      method: request.method,
+      __url: request.url,
+      url: this.#findUrl(request.url),
+      body: readerBody,
+      headers: request.headers,
+      respond: ({ body, status, headers }: any) =>
+        resp!(new Response(body, { status, headers })),
     };
+    this.lookup(req as unknown as Req);
+    await rw;
+  }
+  deploy(){
+    addEventListener("fetch", this.handleFetch.bind(this));
   }
   close() {
     try {
@@ -383,7 +382,7 @@ export class Dero<
             } else {
               break;
             }
-          } catch (_e) {}
+          } catch (_e) { }
         }
       } else {
         for await (const req of this.server) {
