@@ -98,7 +98,7 @@ export class Dero<
           bodyUsed: request.bodyUsed,
           method: request.method,
           __url: request.url,
-          url: this.#findUrl(request.url),
+          url: this.findUrl(request.url),
           body: readerBody,
           headers: request.headers,
           respond: ({ body, status, headers }: any) =>
@@ -149,14 +149,6 @@ export class Dero<
       i++;
     }
   };
-  #findUrl = (str: string) => {
-    let idx = [], i = -1;
-    while ((i = str.indexOf("/", i + 1)) != -1) {
-      idx.push(i);
-      if (idx.length === 3) break;
-    }
-    return str.substring(idx[2]);
-  };
   #parseUrl = (req: HttpRequest) => {
     let str = req.url;
     let url = req._parsedUrl || {};
@@ -180,6 +172,14 @@ export class Dero<
     url.query = query;
     url.search = search;
     req._parsedUrl = url;
+  };
+  findUrl(str: string) {
+    let idx = [], i = -1;
+    while ((i = str.indexOf("/", i + 1)) != -1) {
+      idx.push(i);
+      if (idx.length === 3) break;
+    }
+    return str.substring(idx[2]);
   };
   onError(
     fn: (
@@ -303,7 +303,7 @@ export class Dero<
       bodyUsed: request.bodyUsed,
       method: request.method,
       __url: request.url,
-      url: this.#findUrl(request.url),
+      url: this.findUrl(request.url),
       body: readerBody,
       headers: request.headers,
       respond: ({ body, status, headers }: any) =>
@@ -313,7 +313,7 @@ export class Dero<
     await rw;
   }
   deploy() {
-    addEventListener("fetch", this.handleFetch.bind(this));
+    addEventListener("fetch", this.handleFetch);
   }
   close() {
     try {
