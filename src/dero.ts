@@ -340,13 +340,6 @@ export class Dero<
     ) => void | Promise<void>,
   ) {
     let isTls = false;
-    let proto = "HTTP/1.1";
-    if ((opts as any).alpnProtocols) {
-      let alpnProtocols = (opts as any).alpnProtocols;
-      if (alpnProtocols.includes("h2")) {
-        proto = "HTTP/2";
-      }
-    }
     if (typeof opts === "number") opts = { port: opts };
     else if (typeof opts === "object") {
       isTls = (opts as any).certFile !== void 0;
@@ -378,7 +371,7 @@ export class Dero<
           try {
             const conn = await (this.server as Deno.Listener).accept();
             if (conn) {
-              this.#handleNativeConn(conn as Deno.Conn, { isTls, proto });
+              this.#handleNativeConn(conn as Deno.Conn, { isTls, proto: "HTTP/1.1" });
             } else {
               break;
             }
