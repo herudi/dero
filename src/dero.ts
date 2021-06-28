@@ -313,7 +313,7 @@ export class Dero<
     await rw;
   }
   deploy() {
-    addEventListener("fetch", this.handleFetch);
+    addEventListener("fetch", this.handleFetch.bind(this));
   }
   close() {
     try {
