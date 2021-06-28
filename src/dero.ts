@@ -23,7 +23,7 @@ type DeroOpts = {
 export class Dero<
   Req extends HttpRequest = HttpRequest,
   Res extends HttpResponse = HttpResponse,
-  > extends Router<Req, Res> {
+> extends Router<Req, Res> {
   #nativeHttp: boolean;
   #parseQuery: (...args: any) => any;
   #env: string;
@@ -37,7 +37,7 @@ export class Dero<
     this.#nativeHttp = nativeHttp !== false;
     this.#env = env || "development";
     this.#parseQuery = parseQuery || myParseQuery;
-    this.handleRequestEvent = this.handleRequestEvent.bind(this);
+    this.fetchEventHandler = this.fetchEventHandler.bind(this);
   }
   #wrapError = (handler: Function) => {
     return (
@@ -77,14 +77,38 @@ export class Dero<
     }
   };
   #handleNativeConn = async (
-    opts: { isTls: boolean; proto: string; conn: Deno.Conn },
+    conn: Deno.Conn,
+    opts: { isTls: boolean; proto: string },
   ) => {
     try {
-      const httpConn = (Deno as any).serveHttp(opts.conn);
-      for await (const requestEvent of httpConn) {
-        await this.handleRequestEvent(requestEvent, opts);
+      const httpConn = (Deno as any).serveHttp(conn);
+      for await (const { request, respondWith } of httpConn) {
+        let readerBody: Deno.Reader | null = null;
+        if (request.body) {
+          readerBody = readerFromStreamReader(request.body.getReader());
+        }
+        let resp: (res: Response) => void;
+        const promise = new Promise<Response>((ok) => {
+          resp = ok;
+        });
+        const rw = respondWith(promise);
+        let req = {
+          conn,
+          proto: opts.proto,
+          secure: opts.isTls,
+          bodyUsed: request.bodyUsed,
+          method: request.method,
+          __url: request.url,
+          url: this.#findUrl(request.url),
+          body: readerBody,
+          headers: request.headers,
+          respond: ({ body, status, headers }: any) =>
+            resp!(new Response(body, { status, headers })),
+        };
+        this.lookup(req as unknown as Req);
+        await rw;
       }
-    } catch (_e) { }
+    } catch (_e) {}
   };
   #onError = (err: any, req: Req, res: Res, next: NextFunction) => {
     let obj = getError(err, this.#env === "development");
@@ -158,45 +182,6 @@ export class Dero<
     url.search = search;
     req._parsedUrl = url;
   };
-  async handleRequestEvent(
-    { request, respondWith }: any,
-    opts: { conn?: Deno.Conn; proto?: string; isTls?: boolean } = {},
-  ) {
-    let readerBody: Deno.Reader | null = null;
-    if (request.body) {
-      readerBody = readerFromStreamReader(request.body.getReader());
-    }
-    let resp: (res: Response) => void;
-    const promise = new Promise<Response>((ok) => {
-      resp = ok;
-    });
-    const rw = respondWith(promise);
-    let req = {
-      conn: opts.conn || {},
-      proto: opts.proto || "HTTP/1.1",
-      secure: opts.isTls !== false,
-      bodyUsed: request.bodyUsed,
-      method: request.method,
-      __url: request.url,
-      url: this.#findUrl(request.url),
-      body: readerBody,
-      headers: request.headers,
-      respond: ({ body, status, headers }: any) =>
-        resp!(new Response(body, { status, headers })),
-    };
-    this.lookup(req as unknown as Req);
-    await rw;
-  }
-  deploy() {
-    let _fetch = () => {
-      return {
-        handleEvent: async (event: any) => {
-          await this.handleRequestEvent(event);
-        }
-      }
-    };
-    addEventListener('fetch', _fetch());
-  }
   onError(
     fn: (
       err: any,
@@ -301,6 +286,36 @@ export class Dero<
     // next with body
     withBody(req, next, this.#parseQuery, this.#bodyLimit);
   }
+  fetchEventHandler() {
+    return {
+      handleEvent: async ({ request, respondWith }: any) => {
+        let readerBody: Deno.Reader | null = null;
+        if (request.body) {
+          readerBody = readerFromStreamReader(request.body.getReader());
+        }
+        let resp: (res: Response) => void;
+        const promise = new Promise<Response>((ok) => {
+          resp = ok;
+        });
+        const rw = respondWith(promise);
+        let req = {
+          conn: {},
+          proto: "HTTP/1.1",
+          secure: true,
+          bodyUsed: request.bodyUsed,
+          method: request.method,
+          __url: request.url,
+          url: this.#findUrl(request.url),
+          body: readerBody,
+          headers: request.headers,
+          respond: ({ body, status, headers }: any) =>
+            resp!(new Response(body, { status, headers })),
+        };
+        this.lookup(req as unknown as Req);
+        await rw;
+      },
+    };
+  }
   close() {
     try {
       if (this.server.close) {
@@ -364,11 +379,11 @@ export class Dero<
           try {
             const conn = await (this.server as Deno.Listener).accept();
             if (conn) {
-              this.#handleNativeConn({ conn, isTls, proto });
+              this.#handleNativeConn(conn as Deno.Conn, { isTls, proto });
             } else {
               break;
             }
-          } catch (_e) { }
+          } catch (_e) {}
         }
       } else {
         for await (const req of this.server) {
