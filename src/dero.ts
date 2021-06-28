@@ -23,7 +23,7 @@ type DeroOpts = {
 export class Dero<
   Req extends HttpRequest = HttpRequest,
   Res extends HttpResponse = HttpResponse,
-  > extends Router<Req, Res> {
+> extends Router<Req, Res> {
   #nativeHttp: boolean;
   #parseQuery: (...args: any) => any;
   #env: string;
@@ -107,7 +107,7 @@ export class Dero<
         this.lookup(req as unknown as Req);
         await rw;
       }
-    } catch (_e) { }
+    } catch (_e) {}
   };
   #onError = (err: any, req: Req, res: Res, next: NextFunction) => {
     let obj = getError(err, this.#env === "development");
@@ -312,8 +312,8 @@ export class Dero<
     this.lookup(req as unknown as Req);
     await rw;
   }
-  deploy(){
-    addEventListener("fetch", this.handleFetch.bind(this));
+  deploy() {
+    addEventListener("fetch", this.handleFetch);
   }
   close() {
     try {
@@ -382,7 +382,7 @@ export class Dero<
             } else {
               break;
             }
-          } catch (_e) { }
+          } catch (_e) {}
         }
       } else {
         for await (const req of this.server) {
