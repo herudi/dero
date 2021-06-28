@@ -180,7 +180,7 @@ export class Dero<
       if (idx.length === 3) break;
     }
     return str.substring(idx[2]);
-  };
+  }
   onError(
     fn: (
       err: any,
@@ -230,14 +230,8 @@ export class Dero<
     let fns = findFns(handlers);
     let obj = toPathx(path, method === "ANY");
     if (obj !== void 0) {
-      if (obj.key) {
-        this.route[method + obj.key] = { params: obj.params, handlers: fns };
-      } else {
-        if (this.route[method] === void 0) {
-          this.route[method] = [];
-        }
-        this.route[method].push({ ...obj, handlers: fns });
-      }
+      this.route[method] = this.route[method] || [];
+      this.route[method].push({ ...obj, handlers: fns });
     } else {
       this.route[method + path] = { handlers: fns };
     }
@@ -371,7 +365,10 @@ export class Dero<
           try {
             const conn = await (this.server as Deno.Listener).accept();
             if (conn) {
-              this.#handleNativeConn(conn as Deno.Conn, { isTls, proto: "HTTP/1.1" });
+              this.#handleNativeConn(conn as Deno.Conn, {
+                isTls,
+                proto: "HTTP/1.1",
+              });
             } else {
               break;
             }

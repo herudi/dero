@@ -3,7 +3,7 @@ import {
     BaseController, 
     Controller, 
     Get
-} from "https://deno.land/x/dero@1.1.0/mod.ts";
+} from "https://deno.land/x/dero@1.1.1/mod.ts";
 
 @Controller("/")
 class HelloController extends BaseController {
