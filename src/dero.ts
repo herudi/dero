@@ -188,7 +188,8 @@ export class Dero<
     await rw;
   }
   deploy(fn?: (event: any) => void) {
-    addEventListener('fetch', fn || this.handleRequestEvent);
+    let handler = fn || this.handleRequestEvent;
+    addEventListener('fetch', handler);
   }
   onError(
     fn: (
