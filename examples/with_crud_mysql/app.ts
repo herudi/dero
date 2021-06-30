@@ -1,10 +1,13 @@
-import { Dero } from "./deps.ts";
+import { classValidator, Dero, validateOrReject } from "./deps.ts";
 import ItemsController from "./items/items_controller.ts";
 import client from "./client.ts";
 
 class App extends Dero {
   constructor() {
     super();
+
+    // class validator
+    this.use(classValidator(validateOrReject));
 
     // put the controller with prefix /api/v1
     this.use({

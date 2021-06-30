@@ -1,4 +1,3 @@
-import { ValidatorOptions } from "../validator.ts";
 import { HttpRequest } from "./http_request.ts";
 import { HttpResponse } from "./http_response.ts";
 
@@ -36,9 +35,10 @@ export type TBodyLimit = {
 
 export type Class = { new (): any };
 
-export type TValidatorOptions = ValidatorOptions & {
+export type TValidatorOptions = {
   throw?: { new (message: any): any };
   target?: string;
+  [k: string]: any;
 };
 
 export type ViewEngineOptions = {

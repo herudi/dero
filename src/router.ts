@@ -65,42 +65,58 @@ export default class Router<
           handlers,
         };
       }
-    } else {
-      let i = 0;
-      let j = 0;
-      let obj: any = {};
-      let routes = this.route[method] || [];
-      let matches = [];
-      let _404 = true;
-      if (this.route["ANY"]) {
-        routes = routes.concat(this.route["ANY"]);
-      }
-      let len = routes.length;
-      while (i < len) {
-        obj = routes[i];
-        if (obj.pathx && obj.pathx.test(url)) {
-          _404 = false;
-          if (obj.params) {
-            matches = obj.pathx.exec(url);
-            while (j < obj.params.length) {
-              params[obj.params[j]] = matches[++j] || null;
-            }
-            if (params["wild"]) {
-              params["wild"] = params["wild"].split("/");
-            }
-          }
-          break;
-        }
-        i++;
-      }
-      handlers = this.#addMidd(
-        this.midds,
-        notFound,
-        _404 ? [] : obj.handlers || [],
-        url,
-        this.pmidds,
-      );
+      return { params, handlers };
     }
+    if (url !== "/" && url[url.length - 1] === "/") {
+      let _url = url.slice(0, -1);
+      if (this.route[method + _url]) {
+        let obj = this.route[method + _url];
+        if (obj.m) {
+          handlers = obj.handlers;
+        } else {
+          handlers = this.#addMidd(this.midds, notFound, obj.handlers);
+          this.route[method + _url] = {
+            m: true,
+            handlers,
+          };
+        }
+        return { params, handlers };
+      }
+    }
+    let i = 0;
+    let j = 0;
+    let obj: any = {};
+    let routes = this.route[method] || [];
+    let matches = [];
+    let _404 = true;
+    if (this.route["ANY"]) {
+      routes = routes.concat(this.route["ANY"]);
+    }
+    let len = routes.length;
+    while (i < len) {
+      obj = routes[i];
+      if (obj.pathx && obj.pathx.test(url)) {
+        _404 = false;
+        if (obj.params) {
+          matches = obj.pathx.exec(url);
+          while (j < obj.params.length) {
+            params[obj.params[j]] = matches[++j] || null;
+          }
+          if (params["wild"]) {
+            params["wild"] = params["wild"].split("/");
+          }
+        }
+        break;
+      }
+      i++;
+    }
+    handlers = this.#addMidd(
+      this.midds,
+      notFound,
+      _404 ? [] : obj.handlers || [],
+      url,
+      this.pmidds,
+    );
     return { params, handlers };
   }
 }

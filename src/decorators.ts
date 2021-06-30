@@ -44,7 +44,7 @@ export function joinTargetMethod(target: any, prop: string, arr: any[]) {
   return obj;
 }
 
-function addMethod(method: string, path: string = "") {
+export function addMethodDecorator(method: string, path: string = "") {
   return (target: any, prop: string, des: PropertyDescriptor) => {
     const ori = des.value as Function;
     des.value = function (...args: any[]) {
@@ -63,16 +63,18 @@ function addMethod(method: string, path: string = "") {
   };
 }
 
-export const Get = (path: string = "") => addMethod("GET", path);
-export const Post = (path: string = "") => addMethod("POST", path);
-export const Put = (path: string = "") => addMethod("PUT", path);
-export const Delete = (path: string = "") => addMethod("DELETE", path);
-export const Any = (path: string = "") => addMethod("ANY", path);
-export const Options = (path: string = "") => addMethod("OPTIONS", path);
-export const Head = (path: string = "") => addMethod("HEAD", path);
-export const Trace = (path: string = "") => addMethod("TRACE", path);
-export const Connect = (path: string = "") => addMethod("CONNECT", path);
-export const Patch = (path: string = "") => addMethod("PATCH", path);
+export const Get = (path: string = "") => addMethodDecorator("GET", path);
+export const Post = (path: string = "") => addMethodDecorator("POST", path);
+export const Put = (path: string = "") => addMethodDecorator("PUT", path);
+export const Delete = (path: string = "") => addMethodDecorator("DELETE", path);
+export const Any = (path: string = "") => addMethodDecorator("ANY", path);
+export const Options = (path: string = "") =>
+  addMethodDecorator("OPTIONS", path);
+export const Head = (path: string = "") => addMethodDecorator("HEAD", path);
+export const Trace = (path: string = "") => addMethodDecorator("TRACE", path);
+export const Connect = (path: string = "") =>
+  addMethodDecorator("CONNECT", path);
+export const Patch = (path: string = "") => addMethodDecorator("PATCH", path);
 
 export function Validate(_class: Class, opts: TValidatorOptions = {}) {
   return (target: any, prop: string, des: PropertyDescriptor) => {
