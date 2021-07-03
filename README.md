@@ -2,7 +2,7 @@
 Fast web framework for Deno (support native HTTP/2 [Hyper](https://hyper.rs) and std/http).
 
 [![License](https://img.shields.io/:license-mit-blue.svg)](http://badges.mit-license.org)
-[![deno.land](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Flatest-version%2Fx%2Fdero@1.1.2%2Fmod.ts)](https://deno.land/x/dero)
+[![deno.land](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Flatest-version%2Fx%2Fdero@1.1.3%2Fmod.ts)](https://deno.land/x/dero)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](http://makeapullrequest.com)
 ![deps badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fdep-count%2Fhttps%2Fdeno.land%2Fx%2Fdero%2Fmod.ts)
 ![cache badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fcache-size%2Fhttps%2Fdeno.land%2Fx%2Fdero%2Fmod.ts)
@@ -13,7 +13,7 @@ Fast web framework for Deno (support native HTTP/2 [Hyper](https://hyper.rs) and
 - Controller decorator support.
 - Middleware support.
 - Includes body parser (json and urlencoded).
-- Class Validator middleware (based on [class-validator](https://github.com/typestack/class-validator)).
+- Class Validator (based on [class-validator](https://github.com/typestack/class-validator)).
 
 [See examples](https://github.com/herudi/dero/tree/main/examples)
 ## Benchmark
@@ -37,11 +37,11 @@ Dero
 ## Installation
 ### deno.land
 ```ts
-import {...} from "https://deno.land/x/dero@1.1.2/mod.ts";
+import {...} from "https://deno.land/x/dero@1.1.3/mod.ts";
 ```
 ### nest.land
 ```ts
-import {...} from "https://x.nest.land/dero_framework@1.1.2/mod.ts";
+import {...} from "https://x.nest.land/dero_framework@1.1.3/mod.ts";
 ```
 
 ## Usage
@@ -51,7 +51,7 @@ import {
     BaseController, 
     Controller, 
     Get
-} from "https://deno.land/x/dero@1.1.2/mod.ts";
+} from "https://deno.land/x/dero@1.1.3/mod.ts";
 
 @Controller("/user")
 class UserController extends BaseController {
@@ -99,7 +99,7 @@ import {
     BaseController, 
     Controller, 
     Get
-} from "https://deno.land/x/dero@1.1.2/mod.ts";
+} from "https://deno.land/x/dero@1.1.3/mod.ts";
 
 @Controller("/")
 class HelloController extends BaseController {
@@ -219,7 +219,7 @@ class UserController extends BaseController {
 ...
 ```
 ### View Decorator
-> requires viewEngine middleware 
+> requires viewEngine 
 ```ts
 ...
 @Controller("/user")
@@ -256,13 +256,12 @@ Body validator. see doc [class-validator](https://github.com/typestack/class-val
 ```ts
 ...
 import { 
-    classValidator,
     BaseController, 
     Controller, 
     Validate, 
     Post,
     Dero
-} from "https://deno.land/x/dero@1.1.2/mod.ts";
+} from "https://deno.land/x/dero@1.1.3/mod.ts";
 
 // class validator
 import { 
@@ -294,12 +293,12 @@ class UserController extends BaseController {
 
 class Application extends Dero {
     constructor() {
-        super();
-        
-        // register class validator
-        this.use(classValidator(validateOrReject));
+        super({
+            // register class validator
+            classValidator: validateOrReject
+        });
 
-        // register class controller
+        // add class controller
         this.use({ class: [UserController] });
     }
 }
@@ -361,7 +360,7 @@ class Application extends Dero {
 ```
 ## HttpRequest
 ```ts
-import { HttpRequest } from "https://deno.land/x/dero@1.1.2/mod.ts";
+import { HttpRequest } from "https://deno.land/x/dero@1.1.3/mod.ts";
 ```
 ### request.query
 Query http://localhost:3000/hello?name=john
@@ -481,7 +480,7 @@ class HttpRequest {
 ```
 ## HttpResponse
 ```ts
-import { HttpResponse } from "https://deno.land/x/dero@1.1.2/mod.ts";
+import { HttpResponse } from "https://deno.land/x/dero@1.1.3/mod.ts";
 ```
 ### response.header
 header: (key?: object | string | undefined, value?: any) => HttpResponse | string | Headers;
@@ -718,7 +717,7 @@ class HelloController extends BaseController {
 ```
 ### response.view
 response.view: (pathfile, params, ...args) => Promise<void>
-> requires viewEngine middleware 
+> requires viewEngine 
 ```ts
 ...
 @Controller("/hello")
@@ -828,19 +827,17 @@ Next Function is a function to next step handler (on middleware).
 ```
 ## Classic
 ```ts
-import { dero } from "https://deno.land/x/dero@1.1.2/mod.ts";
+import { dero } from "https://deno.land/x/dero@1.1.3/mod.ts";
 
-dero.get("/", (req, res) => {
+dero().get("/", (req, res) => {
     res.body("Hello World")
-})
-
-dero.listen(3000);
+}).listen(3000);
 ```
 ## Router
 Dero support classic router.
 ```ts
 ...
-import { Dero, Router } from "https://deno.land/x/dero@1.1.2/mod.ts";
+import { Dero, Router } from "https://deno.land/x/dero@1.1.3/mod.ts";
 
 const app = new Dero();
 const router = new Router();
@@ -851,7 +848,7 @@ router.get("/hello", (req, res) => {
 app.use({ routes: [router] }).listen(3000);
 
 // or with middleware and prefix
-// dero.use({
+// app.use({
 //     prefix: "/api/v1",
 //     wares: [midd1, midd2],
 //     routes: [router1, router2]
@@ -860,23 +857,23 @@ app.use({ routes: [router] }).listen(3000);
 ```
 ## listen(opts: number | object, callback?: (err?: Error, opts?: object) => void);
 ```ts
-    await dero.listen(3000);
+    await app.listen(3000);
     // or
     const cb = (err, opts) => {
         if (err) console.log(err);
         console.log("Running on server " + opts?.port);
     }
-    await dero.listen(3000, cb);
+    await app.listen(3000, cb);
     // or
-    await dero.listen({ port: 3000, hostname: 'localhost' }, cb);
+    await app.listen({ port: 3000, hostname: 'localhost' }, cb);
     // or https
-    await dero.listen({ 
+    await app.listen({ 
         port: 443,
         certFile: "./path/to/localhost.crt",
         keyFile: "./path/to/localhost.key",
     }, cb);
     // or http/2 need deno 1.9.0 or higher
-    await dero.listen({ 
+    await app.listen({ 
         port: 443,
         certFile: "./path/to/localhost.crt",
         keyFile: "./path/to/localhost.key",
@@ -900,7 +897,7 @@ this.on404((req, res, next) => {
 ## throw error
 ```ts
 ...
-import { BadRequestError } from "https://deno.land/x/dero@1.1.2/error.ts";
+import { BadRequestError } from "https://deno.land/x/dero@1.1.3/error.ts";
 
 @Controller("/hello")
 class HelloController extends BaseController {
@@ -923,9 +920,8 @@ import {
     Dero, 
     BaseController, 
     Controller, 
-    Get, 
-    viewEngine
-} from "https://deno.land/x/dero@1.1.2/mod.ts";
+    Get,
+} from "https://deno.land/x/dero@1.1.3/mod.ts";
 
 import nunjucks from "https://deno.land/x/nunjucks@3.2.3/mod.js";
 
@@ -942,14 +938,16 @@ class UserController extends BaseController {
 
 }
 
+// nunjucks configure set basedir views.
+nunjucks.configure("views", {/* other config */});
+
 class Application extends Dero {
     constructor() {
-        super();
-
-        // nunjucks configure set basedir views.
-        nunjucks.configure("views", {/* other config */});
-
-        this.use(viewEngine(nunjucks.render));
+        super({
+            viewEngine: {
+                render: nunjucks.render
+            }
+        });
 
         this.use({ class: [UserController] });
     }
@@ -960,7 +958,7 @@ await new Application().listen(3000, () => {
     console.log("Running on port 3000")
 })
 ```
-## The role of dero.use
+## The role of umiddleware (.use)
 ```ts
 // controllers or routes object { class?: Array, routes?: Array, prefix?: string, wares?: Array }
 use(routerControllers: DeroRouterControllers): this;

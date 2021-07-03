@@ -1,11 +1,4 @@
-import {
-  BaseController,
-  classValidator,
-  Controller,
-  Dero,
-  Post,
-  Validate,
-} from "./../mod.ts";
+import { BaseController, Controller, Dero, Post, Validate } from "./../mod.ts";
 import {
   IsNumber,
   IsString,
@@ -30,8 +23,9 @@ class UserController extends BaseController {
 }
 class App extends Dero {
   constructor() {
-    super();
-    this.use(classValidator(validateOrReject));
+    super({
+      classValidator: validateOrReject,
+    });
     this.use({ class: [UserController] });
   }
 }

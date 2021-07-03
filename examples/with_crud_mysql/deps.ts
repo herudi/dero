@@ -1,7 +1,6 @@
 // dero
 export {
   BaseController,
-  classValidator,
   Controller,
   Delete,
   Dero,
@@ -12,7 +11,7 @@ export {
   Status,
   Validate,
   Wares,
-} from "https://deno.land/x/dero@1.1.2/mod.ts";
+} from "https://deno.land/x/dero@1.1.3/mod.ts";
 
 export {
   IsNumber,

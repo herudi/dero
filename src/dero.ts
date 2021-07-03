@@ -4,6 +4,7 @@ import {
   Handlers,
   NextFunction,
   TBodyLimit,
+  ViewEngineOptions,
 } from "./types.ts";
 import { findFns, modPath, myParseQuery, toPathx } from "./utils.ts";
 import { readerFromStreamReader, serve, Server, serveTLS } from "./deps.ts";
@@ -18,6 +19,11 @@ type DeroOpts = {
   env?: string;
   parseQuery?: (...args: any) => any;
   bodyLimit?: TBodyLimit;
+  classValidator?: (...args: any) => any;
+  viewEngine?: {
+    render: (...args: any) => any;
+    options?: ViewEngineOptions;
+  };
 };
 
 export class Dero<
@@ -30,13 +36,44 @@ export class Dero<
   #bodyLimit?: TBodyLimit;
   server!: Server | Deno.Listener;
   constructor(
-    { nativeHttp, env, parseQuery, bodyLimit }: DeroOpts = {},
+    {
+      nativeHttp,
+      env,
+      parseQuery,
+      bodyLimit,
+      classValidator,
+      viewEngine,
+    }: DeroOpts = {},
   ) {
     super();
     this.#bodyLimit = bodyLimit;
     this.#nativeHttp = nativeHttp !== false;
     this.#env = env || "development";
     this.#parseQuery = parseQuery || myParseQuery;
+    if (classValidator || viewEngine) {
+      let vOpts = {} as ViewEngineOptions;
+      if (viewEngine) {
+        if (viewEngine.options) {
+          vOpts = viewEngine.options;
+        }
+        vOpts.basedir = vOpts.basedir || "";
+        vOpts.extname = vOpts.extname || ".html";
+      }
+      this.use((req: HttpRequest, res, next) => {
+        if (viewEngine) {
+          res.view = async (name, params, ...args) => {
+            if (name.lastIndexOf(".") === -1) {
+              name = name + vOpts.extname;
+            }
+            name = vOpts.basedir + name;
+            const html = await viewEngine.render(name, params, ...args);
+            res.type("html").body(html);
+          };
+        }
+        req.__validateOrReject = classValidator;
+        next();
+      });
+    }
   }
   #wrapError = (handler: Function) => {
     return (
@@ -392,4 +429,4 @@ export class Dero<
   }
 }
 
-export const dero = new Dero();
+export const dero = (opts: DeroOpts) => new Dero(opts);

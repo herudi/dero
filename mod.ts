@@ -11,7 +11,7 @@ export { HttpRequest } from "./src/http_request.ts";
 export { HttpResponse, decodeCookies } from "./src/http_response.ts";
 
 export { Dero, dero } from "./src/dero.ts";
-export { viewEngine, validate, classValidator } from "./src/wares.ts";
+export { validate } from "./src/wares.ts";
 
 export * from "./src/decorators.ts";
 export { default as Router } from './src/router.ts';
