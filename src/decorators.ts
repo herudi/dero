@@ -1,6 +1,5 @@
 import { HttpRequest } from "./http_request.ts";
 import { HttpResponse } from "./http_response.ts";
-import { Metadata } from "./metadata.ts";
 import {
   Class,
   Handler,
@@ -10,6 +9,12 @@ import {
 } from "./types.ts";
 import { findFns } from "./utils.ts";
 import { validate } from "./wares.ts";
+
+declare global {
+  interface Window {
+    DeroMetadata: any;
+  }
+}
 
 type TStatus<
   Req extends HttpRequest = HttpRequest,
@@ -38,6 +43,32 @@ type TString<
   next: NextFunction,
 ) => string;
 
+function addRoute(
+  className: string,
+  prop: string,
+  fns: Handler,
+  opts: { path: string; method: string },
+) {
+  window.DeroMetadata = window.DeroMetadata || {};
+  let metadata = window.DeroMetadata;
+  metadata[className] = metadata[className] || {};
+  let obj = metadata[className]["route"] || {};
+  obj[prop] = obj[prop] || {};
+  let handlers = (obj[prop].handlers || []).concat([fns]);
+  obj[prop] = { path: opts.path, method: opts.method, handlers };
+  metadata[className]["route"] = obj;
+}
+
+function joinHandlers(className: any, prop: string, arr: any[]) {
+  window.DeroMetadata = window.DeroMetadata || {};
+  let metadata = window.DeroMetadata;
+  metadata[className] = metadata[className] || {};
+  let obj = metadata[className]["route"] || {};
+  obj[prop] = obj[prop] || {};
+  obj[prop].handlers = arr.concat(obj[prop].handlers || []);
+  metadata[className]["route"] = obj;
+}
+
 export function addMethodDecorator(method: string, path: string = "") {
   return (target: any, prop: string, des: PropertyDescriptor) => {
     const ori = des.value as Function;
@@ -49,7 +80,7 @@ export function addMethodDecorator(method: string, path: string = "") {
       return result;
     };
     const className = target.constructor.name;
-    Metadata.addRoute(className, prop, des.value, { path, method });
+    addRoute(className, prop, des.value, { path, method });
     return des;
   };
 }
@@ -70,7 +101,7 @@ export const Patch = (path: string = "") => addMethodDecorator("PATCH", path);
 export function Validate(_class: Class, opts: TValidatorOptions = {}) {
   return (target: any, prop: string, des: PropertyDescriptor) => {
     const className = target.constructor.name;
-    Metadata.joinHandlers(className, prop, [
+    joinHandlers(className, prop, [
       validate(_class, opts),
     ]);
     return des;
@@ -84,7 +115,7 @@ export function Wares<
   let fns = findFns(middlewares);
   return (target: any, prop: string, des: PropertyDescriptor) => {
     const className = target.constructor.name;
-    Metadata.joinHandlers(className, prop, fns);
+    joinHandlers(className, prop, fns);
     return des;
   };
 }
@@ -100,7 +131,7 @@ export function View<
       next();
     };
     const className = target.constructor.name;
-    Metadata.joinHandlers(className, prop, [viewFn]);
+    joinHandlers(className, prop, [viewFn]);
     return des;
   };
 }
@@ -116,7 +147,7 @@ export function Type<
       next();
     };
     const className = target.constructor.name;
-    Metadata.joinHandlers(className, prop, [typeFn]);
+    joinHandlers(className, prop, [typeFn]);
     return des;
   };
 }
@@ -134,7 +165,7 @@ export function Status<
       next();
     };
     const className = target.constructor.name;
-    Metadata.joinHandlers(className, prop, [statusFn]);
+    joinHandlers(className, prop, [statusFn]);
     return des;
   };
 }
@@ -152,7 +183,7 @@ export function Header<
       next();
     };
     const className = target.constructor.name;
-    Metadata.joinHandlers(className, prop, [headerFn]);
+    joinHandlers(className, prop, [headerFn]);
     return des;
   };
 }
@@ -167,7 +198,7 @@ export function Controller(path: string = "") {
   return (target: Function) => {
     let c_routes = [] as any[];
     const className = target.name;
-    let obj = Metadata.storage[className]["route"];
+    let obj = window.DeroMetadata[className]["route"];
     for (const k in obj) {
       if (path !== "") obj[k].path = path + obj[k].path;
       c_routes.push(obj[k]);
