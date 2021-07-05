@@ -1,5 +1,6 @@
 import { HttpRequest } from "./http_request.ts";
 import { HttpResponse } from "./http_response.ts";
+import { Metadata } from "./metadata.ts";
 import {
   Class,
   Handler,
@@ -37,13 +38,6 @@ type TString<
   next: NextFunction,
 ) => string;
 
-export function joinTargetMethod(target: any, prop: string, arr: any[]) {
-  let obj = target["methods"] || {};
-  obj[prop] = obj[prop] || {};
-  obj[prop].handlers = arr.concat(obj[prop].handlers || []);
-  return obj;
-}
-
 export function addMethodDecorator(method: string, path: string = "") {
   return (target: any, prop: string, des: PropertyDescriptor) => {
     const ori = des.value as Function;
@@ -54,11 +48,8 @@ export function addMethodDecorator(method: string, path: string = "") {
       let result = ori.apply(target, args);
       return result;
     };
-    let obj = target["methods"] || {};
-    obj[prop] = obj[prop] || {};
-    let handlers = (obj[prop].handlers || []).concat([des.value]);
-    obj[prop] = { path, method, handlers };
-    target["methods"] = obj;
+    const className = target.constructor.name;
+    Metadata.addRoute(className, prop, des.value, { path, method });
     return des;
   };
 }
@@ -78,7 +69,8 @@ export const Patch = (path: string = "") => addMethodDecorator("PATCH", path);
 
 export function Validate(_class: Class, opts: TValidatorOptions = {}) {
   return (target: any, prop: string, des: PropertyDescriptor) => {
-    target["methods"] = joinTargetMethod(target, prop, [
+    const className = target.constructor.name;
+    Metadata.joinHandlers(className, prop, [
       validate(_class, opts),
     ]);
     return des;
@@ -91,7 +83,8 @@ export function Wares<
 >(...middlewares: Handlers<Req, Res>) {
   let fns = findFns(middlewares);
   return (target: any, prop: string, des: PropertyDescriptor) => {
-    target["methods"] = joinTargetMethod(target, prop, fns);
+    const className = target.constructor.name;
+    Metadata.joinHandlers(className, prop, fns);
     return des;
   };
 }
@@ -106,7 +99,8 @@ export function View<
         : name;
       next();
     };
-    target["methods"] = joinTargetMethod(target, prop, [viewFn]);
+    const className = target.constructor.name;
+    Metadata.joinHandlers(className, prop, [viewFn]);
     return des;
   };
 }
@@ -121,7 +115,8 @@ export function Type<
       );
       next();
     };
-    target["methods"] = joinTargetMethod(target, prop, [typeFn]);
+    const className = target.constructor.name;
+    Metadata.joinHandlers(className, prop, [typeFn]);
     return des;
   };
 }
@@ -138,7 +133,8 @@ export function Status<
       );
       next();
     };
-    target["methods"] = joinTargetMethod(target, prop, [statusFn]);
+    const className = target.constructor.name;
+    Metadata.joinHandlers(className, prop, [statusFn]);
     return des;
   };
 }
@@ -155,7 +151,8 @@ export function Header<
       );
       next();
     };
-    target["methods"] = joinTargetMethod(target, prop, [headerFn]);
+    const className = target.constructor.name;
+    Metadata.joinHandlers(className, prop, [headerFn]);
     return des;
   };
 }
@@ -169,7 +166,8 @@ export function Inject(value: any, ...args: any) {
 export function Controller(path: string = "") {
   return (target: Function) => {
     let c_routes = [] as any[];
-    let obj = target.prototype["methods"];
+    const className = target.name;
+    let obj = Metadata.storage[className]["route"];
     for (const k in obj) {
       if (path !== "") obj[k].path = path + obj[k].path;
       c_routes.push(obj[k]);

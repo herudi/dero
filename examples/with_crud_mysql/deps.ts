@@ -11,7 +11,7 @@ export {
   Status,
   Validate,
   Wares,
-} from "https://deno.land/x/dero@1.1.3/mod.ts";
+} from "https://deno.land/x/dero@1.2.0/mod.ts";
 
 export {
   IsNumber,
