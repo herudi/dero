@@ -22,16 +22,18 @@ Simple benchmark.
 `autocannon -c 100 http://localhost:3000/`
 
 Pure Deno
-|Name |Req/sec |Throughput |
-|--- |--- |--- |
-|Native|21433|2.5 MB|
-|std/http|14569|626 KB|
+
+| Name     | Req/sec | Throughput |
+| ---------| --------| -----------|
+| Native   | 21433   | 2.5 MB     |
+| std/http | 14569   | 626 KB     |
 
 Dero
-|Name |Req/sec |Throughput |
-|--- |--- |--- |
-|Dero native|20672|2.3 MB|
-|Dero std/http|13895|544 KB|
+
+| Name        | Req/sec | Throughput |
+| ------------| --------| -----------|
+| Dero native | 20672   | 2.3 MB     |
+| Dero native | 13895   | 544 KB     |
 
 
 ## Installation
