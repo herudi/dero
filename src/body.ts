@@ -13,7 +13,10 @@ async function verifyBody(body: Deno.Reader, limit?: number | string) {
   }
   return decoder.decode(buff);
 }
-
+function acceptContentType(headers: Headers, cType: string) {
+  const type = headers.get("content-type");
+  return type === cType || type?.startsWith(cType);
+}
 export async function withBody(
   req: HttpRequest,
   next: NextFunction,
@@ -21,23 +24,42 @@ export async function withBody(
   opts?: TBodyLimit,
 ) {
   if (req.body && !req.bodyUsed) {
-    if (req.headers.get("content-type") === "application/json") {
-      try {
-        const body = await verifyBody(req.body, opts?.json || "3mb");
-        req.parsedBody = JSON.parse(body);
-        req.bodyUsed = req.bodyUsed !== false;
-      } catch (error) {
-        return next(error);
+    if (acceptContentType(req.headers, "application/json")) {
+      if (opts?.json !== 0) {
+        try {
+          const body = await verifyBody(req.body, opts?.json || "3mb");
+          req.parsedBody = JSON.parse(body);
+          req.bodyUsed = req.bodyUsed !== false;
+        } catch (error) {
+          return next(error);
+        }
       }
     } else if (
-      req.headers.get("content-type") === "application/x-www-form-urlencoded"
+      acceptContentType(req.headers, "application/x-www-form-urlencoded")
     ) {
-      try {
-        const body = await verifyBody(req.body, opts?.json || "3mb");
-        req.parsedBody = parse(body);
-        req.bodyUsed = req.bodyUsed !== false;
-      } catch (error) {
-        return next(error);
+      if (opts?.urlencoded !== 0) {
+        try {
+          const body = await verifyBody(req.body, opts?.urlencoded || "3mb");
+          req.parsedBody = parse(body);
+          req.bodyUsed = req.bodyUsed !== false;
+        } catch (error) {
+          return next(error);
+        }
+      }
+    } else if (acceptContentType(req.headers, "text/plain")) {
+      if (opts?.raw !== 0) {
+        try {
+          const body = await verifyBody(req.body, opts?.raw || "3mb");
+          try {
+            req.parsedBody = JSON.parse(body);
+            req.bodyUsed = req.bodyUsed !== false;
+          } catch (err) {
+            req.parsedBody = { _raw: body };
+            req.bodyUsed = req.bodyUsed !== false;
+          }
+        } catch (error) {
+          return next(error);
+        }
       }
     }
   }

@@ -31,6 +31,7 @@ export type DeroRoutersControllers<
 export type TBodyLimit = {
   json?: number | string;
   urlencoded?: number | string;
+  raw?: number | string;
 };
 
 export type Class = { new (): any };
