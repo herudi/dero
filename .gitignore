@@ -1,5 +1,6 @@
 .vscode
 /public
+/website/cf_workers.js
 /views
 note.txt
 eggs-debug.log
