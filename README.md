@@ -84,11 +84,6 @@ await new Application().listen(3000, () => {
 
 
 ## Run
-> Note: for now, native http need --unstable flag.
-```bash
-deno run --allow-net --unstable yourfile.ts
-```
-or 
 ```bash
 deno run --allow-net yourfile.ts
 ```
