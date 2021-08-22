@@ -1,7 +1,6 @@
 import { HttpRequest } from "./http_request.ts";
 import { HttpResponse } from "./http_response.ts";
-import { Handler, Handlers } from "./types.ts";
-import { findBase } from "./utils.ts";
+import { Handlers } from "./types.ts";
 
 export default class Router<
   Req extends HttpRequest = HttpRequest,
@@ -9,8 +8,6 @@ export default class Router<
 > {
   route: Record<string, any> = {};
   c_routes: Record<string, any>[] = [];
-  midds: Handler<Req, Res>[] = [];
-  pmidds: Record<string, any> = {};
   get: (path: string, ...handlers: Handlers<Req, Res>) => this;
   post: (path: string, ...handlers: Handlers<Req, Res>) => this;
   put: (path: string, ...handlers: Handlers<Req, Res>) => this;
@@ -33,90 +30,27 @@ export default class Router<
     this.trace = this.on.bind(this, "TRACE");
     this.connect = this.on.bind(this, "CONNECT");
   }
-  #addMidd = (
-    midds: Handler<Req, Res>[],
-    notFound: Handler<Req, Res>,
-    fns: Handler<Req, Res>[],
-    url: string = "/",
-    midAsset?: { [k: string]: any },
-  ) => {
-    if (midAsset !== void 0) {
-      let pfx = findBase(url);
-      if (midAsset[pfx]) fns = midAsset[pfx].concat(fns);
-    }
-    if (midds.length) fns = midds.concat(fns);
-    return (fns = fns.concat([notFound]));
-  };
   on(method: string, path: string, ...handlers: Handlers<Req, Res>) {
     this.c_routes.push({ method, path, handlers });
     return this;
   }
-  findRoute(method: string, url: string, notFound: Handler<Req, Res>) {
-    let handlers: any[] = [];
-    let params: { [key: string]: any } = {};
-    if (this.route[method + url]) {
-      let obj = this.route[method + url];
-      if (obj.m) {
-        handlers = obj.handlers;
-      } else {
-        handlers = this.#addMidd(this.midds, notFound, obj.handlers);
-        this.route[method + url] = {
-          m: true,
-          handlers,
-        };
-      }
-      return { params, handlers };
-    }
-    if (url !== "/" && url[url.length - 1] === "/") {
-      let _url = url.slice(0, -1);
-      if (this.route[method + _url]) {
-        let obj = this.route[method + _url];
-        if (obj.m) {
-          handlers = obj.handlers;
-        } else {
-          handlers = this.#addMidd(this.midds, notFound, obj.handlers);
-          this.route[method + _url] = {
-            m: true,
-            handlers,
-          };
-        }
-        return { params, handlers };
-      }
-    }
-    let i = 0;
-    let j = 0;
-    let obj: any = {};
-    let routes = this.route[method] || [];
-    let matches = [];
-    let _404 = true;
-    if (this.route["ANY"]) {
-      routes = routes.concat(this.route["ANY"]);
-    }
-    let len = routes.length;
-    while (i < len) {
-      obj = routes[i];
-      if (obj.pathx && obj.pathx.test(url)) {
-        _404 = false;
-        if (obj.params) {
-          matches = obj.pathx.exec(url);
-          while (j < obj.params.length) {
-            params[obj.params[j]] = matches[++j] || null;
-          }
-          if (params["wild"]) {
-            params["wild"] = params["wild"].split("/");
+  findRoute(method: string, url: string) {
+    let fns = [], params: any = {}, match, arr = this.route[method] || [];
+    if (this.route["ANY"]) arr = arr.concat(this.route["ANY"]);
+    for (const [handlers, { pattern, isParam, isWild }] of arr) {
+      if (pattern.test(url)) {
+        if (isParam) {
+          match = pattern.exec(url);
+          params = match.groups || {};
+          if (isWild && typeof match[1] === "string") {
+            params["wild"] = match[1].split("/");
+            params["wild"].shift();
           }
         }
+        fns = handlers;
         break;
       }
-      i++;
     }
-    handlers = this.#addMidd(
-      this.midds,
-      notFound,
-      _404 ? [] : obj.handlers || [],
-      url,
-      this.pmidds,
-    );
-    return { params, handlers };
+    return { fns, params };
   }
 }

@@ -128,7 +128,7 @@ export function View<
       res.___view = typeof name === "function"
         ? name(req as Req, res as Res, next)
         : name;
-      next();
+      return next();
     };
     const className = target.constructor.name;
     joinHandlers(className, prop, [viewFn]);
@@ -144,7 +144,7 @@ export function Type<
       res.type(
         typeof name === "function" ? name(req as Req, res as Res, next) : name,
       );
-      next();
+      return next();
     };
     const className = target.constructor.name;
     joinHandlers(className, prop, [typeFn]);
@@ -162,7 +162,7 @@ export function Status<
           ? status(req as Req, res as Res, next)
           : status,
       );
-      next();
+      return next();
     };
     const className = target.constructor.name;
     joinHandlers(className, prop, [statusFn]);
@@ -180,7 +180,7 @@ export function Header<
           ? header(req as Req, res as Res, next)
           : header,
       );
-      next();
+      return next();
     };
     const className = target.constructor.name;
     joinHandlers(className, prop, [headerFn]);

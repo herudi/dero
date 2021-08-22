@@ -13,10 +13,10 @@ export function findFns(arr: any[]): any[] {
   return ret;
 }
 export function modPath(prefix: string) {
-  return function (req: HttpRequest, res: HttpResponse, next: NextFunction) {
+  return function (req: HttpRequest, _: HttpResponse, next: NextFunction) {
     req.url = req.url.substring(prefix.length) || "/";
     req.path = req.path ? req.path.substring(prefix.length) || "/" : "/";
-    next();
+    return next();
   };
 }
 export async function existStat(filename: string) {
@@ -49,51 +49,23 @@ export function toBytes(arg: string | number) {
   }
   return Math.floor(sizeList[unt] * val);
 }
-export function toPathx(path: string | RegExp, isAny: boolean) {
-  if (path instanceof RegExp) return { params: null, pathx: path };
-  let trgx = /\?|\*|\./;
-  if (!trgx.test(path) && isAny === false) {
-    let len = (path.match(/\/:/gi) || []).length;
-    if (len === 0) return;
+export function toPathx(url: string) {
+  let isParam = url.indexOf("/:") !== -1;
+  let isWild = false;
+  url = url.replace(/\/$/, "").replace(
+    /:(\w+)(\?)?(\.)?/g,
+    "$2(?<$1>[^/]+)$2$3",
+  );
+  if (/\*|\./.test(url)) {
+    url = url
+      .replace(/(\/?)\*/g, (_, p) => {
+        isWild = true;
+        isParam = true;
+        return `(${p}.*)?`;
+      })
+      .replace(/\.(?=[\w(])/, "\\.");
   }
-  let params: any[] | string | null = [],
-    pattern = "",
-    strReg = "/([^/]+?)",
-    strRegQ = "(?:/([^/]+?))?";
-  if (trgx.test(path)) {
-    let arr = path.split("/"), obj: string | any[], el: string, i = 0;
-    arr[0] || arr.shift();
-    for (; i < arr.length; i++) {
-      obj = arr[i];
-      el = obj[0];
-      if (el === "*") {
-        params.push("wild");
-        pattern += "/(.*)";
-      } else if (el === ":") {
-        let isQuest = obj.indexOf("?") !== -1, isExt = obj.indexOf(".") !== -1;
-        if (isQuest && !isExt) pattern += strRegQ;
-        else pattern += strReg;
-        if (isExt) {
-          let _ext = obj.substring(obj.indexOf("."));
-          let _pattern = pattern + (isQuest ? "?" : "") + "\\" + _ext;
-          _pattern = _pattern.replaceAll(
-            strReg + "\\" + _ext,
-            "/([\\w-]+" + _ext + ")",
-          );
-          pattern = _pattern;
-        }
-      } else pattern += "/" + obj;
-    }
-  } else pattern = path.replace(/\/:[a-z_-]+/gi, strReg);
-  let pathx = new RegExp(`^${pattern}/?$`, "i"),
-    matches = path.match(/\:([a-z_-]+)/gi);
-  if (!params.length) {
-    params = matches && matches.map((e: string) => e.substring(1));
-  } else {
-    let newArr = matches ? matches.map((e: string) => e.substring(1)) : [];
-    params = newArr.concat(params);
-  }
-  return { params, pathx };
+  return { pattern: new RegExp(`^${url}/*$`), isParam, isWild };
 }
 export function findBase(pathname: string) {
   let iof = pathname.indexOf("/", 1);

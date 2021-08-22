@@ -5,10 +5,9 @@
   "unstable": false,
   "description": "Fast web framework for Deno (support native HTTP/2 Hyper and std/http)",
   "homepage": "https://github.com/herudi/dero",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "files": [
     "./mod.ts",
-    "./error.ts",
     "./src/**/*",
     "./LICENSE",
     "./README.md"

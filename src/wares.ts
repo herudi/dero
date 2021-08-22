@@ -1,4 +1,4 @@
-import { UnprocessableEntityError } from "../error.ts";
+import { UnprocessableEntityError } from "./error.ts";
 import { Class, Handler, TValidatorOptions } from "./types.ts";
 
 export function validate(_class: Class, opts: TValidatorOptions = {}): Handler {
@@ -17,6 +17,6 @@ export function validate(_class: Class, opts: TValidatorOptions = {}): Handler {
     } catch (error) {
       throw new (opts as any).throw(error);
     }
-    next();
+    return next();
   };
 }

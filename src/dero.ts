@@ -6,17 +6,19 @@ import {
   TBodyLimit,
   ViewEngineOptions,
 } from "./types.ts";
-import { findFns, modPath, myParseQuery, toPathx } from "./utils.ts";
+import { findBase, findFns, modPath, myParseQuery, toPathx } from "./utils.ts";
 import { readerFromStreamReader, serve, Server, serveTLS } from "./deps.ts";
 import Router from "./router.ts";
-import { getError, NotFoundError } from "../error.ts";
+import { getError, NotFoundError } from "./error.ts";
 import { withBody } from "./body.ts";
 import { HttpRequest } from "./http_request.ts";
 import { HttpResponse, response } from "./http_response.ts";
 
+type TObject = { [k: string]: any };
+
 type DeroOpts = {
-  nativeHttp?: boolean;
   env?: string;
+  nativeHttp?: boolean;
   parseQuery?: (...args: any) => any;
   bodyLimit?: TBodyLimit;
   classValidator?: (...args: any) => any;
@@ -26,15 +28,22 @@ type DeroOpts = {
   };
 };
 
+const defError = (err: any, req: HttpRequest, env: string) => {
+  let obj = getError(err, env === "development");
+  return req.pond(obj, { status: obj.status });
+};
+
 export class Dero<
   Req extends HttpRequest = HttpRequest,
   Res extends HttpResponse = HttpResponse,
-> extends Router<Req, Res> {
-  #nativeHttp: boolean;
-  #parseQuery: (...args: any) => any;
-  #env: string;
-  #bodyLimit?: TBodyLimit;
-  server!: Server | Deno.Listener;
+  > extends Router<Req, Res> {
+  private parseQuery: (...args: any) => any;
+  private env: string;
+  private nativeHttp: boolean;
+  private bodyLimit?: TBodyLimit;
+  private midds: Handler<Req, Res>[] = [];
+  private pmidds: Record<string, any> | undefined;
+  public server!: Server | Deno.Listener;
   constructor(
     {
       nativeHttp,
@@ -46,10 +55,10 @@ export class Dero<
     }: DeroOpts = {},
   ) {
     super();
-    this.#bodyLimit = bodyLimit;
-    this.#nativeHttp = nativeHttp !== false;
-    this.#env = env || "development";
-    this.#parseQuery = parseQuery || myParseQuery;
+    this.bodyLimit = bodyLimit;
+    this.nativeHttp = nativeHttp !== false;
+    this.env = env || "development";
+    this.parseQuery = parseQuery || myParseQuery;
     if (classValidator || viewEngine) {
       let vOpts = {} as ViewEngineOptions;
       if (viewEngine) {
@@ -71,96 +80,58 @@ export class Dero<
           };
         }
         req.__validateOrReject = classValidator;
-        next();
+        return next();
       });
     }
   }
-  #wrapError = (handler: Function) => {
-    return (
-      err: any,
-      req: Req,
-      res: Res,
-      next: NextFunction,
-    ) => {
-      let ret;
-      try {
-        ret = handler(err, req, res, next);
-      } catch (err) {
-        return this.#onError(err, req, res, next);
-      }
-      if (ret) {
-        if (typeof ret.then === "function") {
-          return this.#withPromise(ret, req, res, next, true);
-        }
-        req.pond(ret);
-      }
-    };
-  };
-  #withPromise = async (
+  private async withPromise (
     handler: Promise<Handler>,
     req: Req,
     res: Res,
     next: NextFunction,
     isDepError: boolean = false,
-  ) => {
+  ) {
     try {
       let ret = await handler;
       if (ret === void 0) return;
-      req.pond(ret);
+      return req.pond(ret);
     } catch (err) {
-      if (isDepError) this.#onError(err, req, res, next);
+      if (isDepError) this._onError(err, req, res, next);
       else next(err);
     }
   };
-  #handleNativeConn = async (
-    conn: Deno.Conn,
-    opts: { isTls: boolean; proto: string },
-  ) => {
+  private async handleConn(conn: Deno.Conn, secure: boolean) {
     try {
       const httpConn = (Deno as any).serveHttp(conn);
-      for await (const { request, respondWith } of httpConn) {
-        let readerBody: Deno.Reader | null = null;
-        if (request.body) {
-          readerBody = readerFromStreamReader(request.body.getReader());
-        }
+      for await (const evt of httpConn) {
         let resp: (res: Response) => void;
-        const promise = new Promise<Response>((ok) => {
-          resp = ok;
-        });
-        const rw = respondWith(promise);
-        let req = {
-          conn,
-          proto: opts.proto,
-          secure: opts.isTls,
-          bodyUsed: request.bodyUsed,
-          method: request.method,
-          __url: request.url,
-          url: this.findUrl(request.url),
-          body: readerBody,
-          headers: request.headers,
-          respond: ({ body, status, headers }: any) =>
-            resp!(new Response(body, { status, headers })),
-        };
-        this.lookup(req as unknown as Req);
+        const promise = new Promise<Response>((ok) => (resp = ok));
+        const rw = evt.respondWith(promise);
+        const req = evt as Req;
+        req.respondWith = resp! as (
+          r: Response | Promise<Response>,
+        ) => Promise<void>;
+        req.conn = conn;
+        req.secure = secure;
+        this.lookup(req);
         await rw;
       }
-    } catch (_e) {}
+    } catch (_e) { }
   };
-  #onError = (err: any, req: Req, res: Res, next: NextFunction) => {
-    let obj = getError(err, this.#env === "development");
-    return req.pond(obj, { status: obj.status });
+  private _onError(err: any, req: Req, res: Res, next: NextFunction) {
+    return defError(err, req, this.env);
   };
-  #onNotFound = (req: Req, res: Res, next: NextFunction) => {
+  private _onNotFound(req: Req, res: Res, next: NextFunction) {
     let obj = getError(
       new NotFoundError(`Route ${req.method}${req.url} not found`),
       false,
     );
     return req.pond(obj, { status: obj.status });
   };
-  #addRoutes = (arg: string | undefined, args: any[], routes: any[], i = 0) => {
+  private addRoutes(arg: string | undefined, args: any[], routes: any[], i = 0) {
     let prefix = "";
     let midds = findFns(args);
-    let len = routes.length;
+    const len = routes.length;
     if (typeof arg === "string" && arg.length > 1 && arg.charAt(0) === "/") {
       prefix = arg;
     }
@@ -170,7 +141,7 @@ export class Dero<
       i++;
     }
   };
-  #pushRoutes = (arg: { [k: string]: any }, key: string, i = 0) => {
+  private pushRoutes(arg: { [k: string]: any }, key: string, i = 0) {
     let wares: any[] = [];
     if (arg.wares) {
       wares = (Array.isArray(arg.wares) ? arg.wares : [arg.wares]) as Handlers<
@@ -182,11 +153,11 @@ export class Dero<
     let len = arr.length;
     while (i < len) {
       const obj = key === "class" ? arr[i].prototype : arr[i];
-      this.#addRoutes(arg.prefix, wares, obj.c_routes);
+      this.addRoutes(arg.prefix, wares, obj.c_routes);
       i++;
     }
   };
-  #parseUrl = (req: HttpRequest) => {
+  private parseUrl(req: HttpRequest) {
     let str = req.url;
     let url = req._parsedUrl || {};
     if (url._raw === str) return;
@@ -204,7 +175,7 @@ export class Dero<
       }
       i++;
     }
-    url.path = url._raw = url.href = str;
+    url._raw = str;
     url.pathname = pathname;
     url.query = query;
     url.search = search;
@@ -226,7 +197,8 @@ export class Dero<
       next: NextFunction,
     ) => any,
   ) {
-    this.#onError = this.#wrapError(fn) as any;
+    this._onError = fn;
+    return this;
   }
   on404(
     fn: (
@@ -235,67 +207,65 @@ export class Dero<
       next: NextFunction,
     ) => any,
   ) {
-    this.#onNotFound = fn;
+    this._onNotFound = fn;
+    return this;
   }
+
   use(...middlewares: Handlers<Req, Res>): this;
+  use(middleware: Handler | Handler[]): this;
   use(routerController: DeroRoutersControllers<Req, Res>): this;
   use(prefix: string, ...middlewares: Handlers<Req, Res>): this;
+  use(prefix: string, middleware: Handler | Handler[]): this;
   use(...args: any): this;
   use(...args: any) {
     const arg = args[0];
-    const larg = args[args.length - 1];
     const len = args.length;
     if (len === 1 && typeof arg === "function") {
       this.midds.push(arg);
-    } else if (typeof arg === "string" && typeof larg === "function") {
-      if (arg === "*") {
-        this.#onNotFound = larg;
-      } else if (arg === "/" || arg === "") {
+    } else if (typeof arg === "string") {
+      if (arg === "/" || arg === "") {
         this.midds = this.midds.concat(findFns(args));
       } else {
+        this.pmidds = this.pmidds || {};
         this.pmidds[arg] = [modPath(arg)].concat(findFns(args));
       }
-    } else if (typeof larg === "object") {
-      if (larg.class) this.#pushRoutes(arg, "class");
-      if (larg.routes) this.#pushRoutes(arg, "routes");
+    } else if (typeof arg === "object" && (arg.class || arg.routes)) {
+      if (arg.class) this.pushRoutes(arg, "class");
+      if (arg.routes) this.pushRoutes(arg, "routes");
     } else {
       this.midds = this.midds.concat(findFns(args));
     }
     return this;
   }
   on(method: string, path: string, ...handlers: Handlers<Req, Res>): this {
-    let fns = findFns(handlers);
-    let obj = toPathx(path, method === "ANY");
-    if (obj !== void 0) {
-      this.route[method] = this.route[method] || [];
-      this.route[method].push({ ...obj, handlers: fns });
-    } else {
-      this.route[method + path] = { handlers: fns };
-    }
+    this.route[method] = this.route[method] || [];
+    this.route[method].push([findFns(handlers), toPathx(path)]);
     return this;
   }
-  lookup(req: Req, res = {} as HttpResponse, i = 0) {
-    this.#parseUrl(req);
-    const obj = this.findRoute(
+  lookup(req: Req, res = {} as HttpResponse, isRw = false) {
+    if (this.nativeHttp) {
+      if (isRw) {
+        req.respondWith = (r: Response | Promise<Response>) => r as Response;
+      }
+      let readerBody: Deno.Reader | null = null;
+      if (req.request.body) {
+        readerBody = readerFromStreamReader(req.request.body.getReader());
+      }
+      req.headers = req.request.headers;
+      req.bodyUsed = req.request.bodyUsed;
+      req.method = req.request.method;
+      req.url = this.findUrl(req.request.url);
+      req.body = readerBody;
+      req.respond = ({ body, status, headers }: any) => {
+        return req.respondWith(new Response(body, { status, headers }));
+      };
+    }
+    let i = 0;
+    this.parseUrl(req);
+    let { fns, params } = this.findRoute(
       req.method,
       req._parsedUrl.pathname,
-      this.#onNotFound,
     );
-    const next: NextFunction = (err?: any) => {
-      if (err) return this.#onError(err, req, res as Res, next);
-      let ret;
-      try {
-        ret = obj.handlers[i++](req, res, next);
-      } catch (error) {
-        return next(error);
-      }
-      if (ret) {
-        if (typeof ret.then === "function") {
-          return this.#withPromise(ret, req, res as Res, next);
-        }
-        return req.pond(ret);
-      }
-    };
     // init res
     res.return = [];
     res.locals = {};
@@ -303,10 +273,31 @@ export class Dero<
     // init req
     req.parsedBody = {};
     req.originalUrl = req.originalUrl || req.url;
-    req.params = obj.params;
+    req.params = params;
     req.path = req._parsedUrl.pathname;
-    req.query = this.#parseQuery(req._parsedUrl.query);
+    req.query = this.parseQuery(req._parsedUrl.query);
     req.search = req._parsedUrl.search;
+    if (this.pmidds) {
+      const p = findBase(req._parsedUrl.pathname);
+      if (this.pmidds[p]) fns = this.pmidds[p].concat(fns);
+    }
+    fns = this.midds.concat(fns, [this._onNotFound]);
+    const next: NextFunction = (err?: any) => {
+      let ret;
+      try {
+        ret = err
+          ? this._onError(err, req, res as Res, next)
+          : fns[i++](req, res, next);
+      } catch (e) {
+        return err ? defError(e, req, this.env) : next(e);
+      }
+      if (ret) {
+        if (typeof ret.then === "function") {
+          return this.withPromise(ret, req, res as Res, next);
+        }
+        return req.pond(ret);
+      }
+    };
     // build request response
     response(req, res, next);
     // don't send body if GET or HEAD
@@ -314,33 +305,22 @@ export class Dero<
       return next();
     }
     // next with body
-    withBody(req, next, this.#parseQuery, this.#bodyLimit);
+    return withBody(req, next, this.parseQuery, this.bodyLimit);
+  }
+  handleEvent(event: any) {
+    event.conn = {} as Deno.Conn;
+    return this.lookup(event, {} as HttpResponse, true);
   }
   async handleFetch(event: any) {
-    let readerBody: Deno.Reader | null = null;
-    let request = event.request;
-    if (request.body) {
-      readerBody = readerFromStreamReader(request.body.getReader());
-    }
     let resp: (res: Response) => void;
-    const promise = new Promise<Response>((ok) => {
-      resp = ok;
-    });
+    const promise = new Promise<Response>((ok) => (resp = ok));
     const rw = event.respondWith(promise);
-    let req = {
-      conn: {},
-      proto: "HTTP/1.1",
-      secure: true,
-      bodyUsed: request.bodyUsed,
-      method: request.method,
-      __url: request.url,
-      url: this.findUrl(request.url),
-      body: readerBody,
-      headers: request.headers,
-      respond: ({ body, status, headers }: any) =>
-        resp!(new Response(body, { status, headers })),
-    };
-    this.lookup(req as unknown as Req);
+    const req = event as Req;
+    req.respondWith = resp! as (
+      r: Response | Promise<Response>,
+    ) => Promise<void>;
+    req.conn = {} as Deno.Conn;
+    this.lookup(req);
     await rw;
   }
   deploy() {
@@ -361,13 +341,13 @@ export class Dero<
       | number
       | Deno.ListenOptions
       | Deno.ListenTlsOptions
-      | { [k: string]: any },
+      | TObject,
     callback?: (
       err?: Error,
       opts?:
         | Deno.ListenOptions
         | Deno.ListenTlsOptions
-        | { [k: string]: any },
+        | TObject,
     ) => void | Promise<void>,
   ) {
     let isTls = false;
@@ -375,7 +355,7 @@ export class Dero<
     else if (typeof opts === "object") {
       isTls = (opts as any).certFile !== void 0;
     }
-    let isNative = this.#nativeHttp === true && (Deno as any).serveHttp;
+    let isNative = this.nativeHttp === true && (Deno as any).serveHttp;
     if (isNative) {
       this.server = (
         isTls ? Deno.listenTls(opts as Deno.ListenTlsOptions) : Deno.listen(
@@ -402,14 +382,11 @@ export class Dero<
           try {
             const conn = await (this.server as Deno.Listener).accept();
             if (conn) {
-              this.#handleNativeConn(conn as Deno.Conn, {
-                isTls,
-                proto: "HTTP/1.1",
-              });
+              this.handleConn(conn as Deno.Conn, isTls);
             } else {
               break;
             }
-          } catch (_e) {}
+          } catch (_e) { }
         }
       } else {
         for await (const req of this.server) {

@@ -1,12 +1,14 @@
 import { PondOptions, TBody } from "./types.ts";
 
 export class HttpRequest {
+  readonly request!: Request;
+  respondWith!: (r: Response | Promise<Response>) => any;
   respond!: (r: any) => Promise<void>;
   parsedBody!: { [k: string]: any };
   pond!: (
     body?: TBody | { [k: string]: any } | null,
     opts?: PondOptions,
-  ) => Promise<void>;
+  ) => Promise<any>;
   getCookies!: (decode?: boolean) => Record<string, any>;
   proto!: string;
   url!: string;

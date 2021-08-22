@@ -99,6 +99,9 @@ export function response(
       if (ret) return this.respond({ body: ret, ...opts });
     }
     if (typeof body === "object") {
+      if (body instanceof Response) {
+        return this.respondWith(body);
+      }
       if (
         body instanceof Uint8Array ||
         body instanceof ReadableStream ||
@@ -116,7 +119,7 @@ export function response(
     return this.respond({ body, ...opts });
   };
   req.getBaseUrl = function () {
-    if (req.__url) return new URL(req.__url).origin;
+    if (req.request) return new URL(req.request.url).origin;
     let host = req.headers.get("host");
     let proto = (req.headers.get("X-Forwarded-Proto") ||
       req.headers.get("X-Forwarded-Protocol") || (this.secure
@@ -207,7 +210,7 @@ export function response(
         "Content-Type": contentType(ext) || "application/octet-stream",
       }).body(await Deno.readFile(pathfile));
     } catch (error) {
-      next(error);
+      return next(error);
     }
   };
   res.redirect = function (url, status) {

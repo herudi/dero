@@ -1,4 +1,4 @@
-import { BadRequestError } from "../error.ts";
+import { BadRequestError } from "./error.ts";
 import { readAll } from "./deps.ts";
 import { HttpRequest } from "./http_request.ts";
 import { NextFunction, TBodyLimit } from "./types.ts";
@@ -63,5 +63,5 @@ export async function withBody(
       }
     }
   }
-  next();
+  return next();
 }
